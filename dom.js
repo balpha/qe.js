@@ -6,6 +6,7 @@
         if (globalScope)
             globalScope.tearDown();
         globalScope = Scope();
+        globalScope.set("$$global", globalScope);
         buildScopes(document.body, globalScope);
     }
     
@@ -86,7 +87,7 @@
             if (type === "radio") {
                 return elem.checked;
             }
-            return false;
+            return elem.value;
             //throw "unsupported element for $value";
         };
         

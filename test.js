@@ -121,6 +121,25 @@
             document.getElementById("failure").addEventListener("click", function () { done(false); });
         },
     });
+    
+    TESTS.push({
+        name: "$value for text inputs and $$global, manual",
+        body: ['<body><div qe qe:style="\'width:50px;height:50px;background-color:\' + color"></div>',
+               'Type a CSS color here, and also try the "random" button:<br>',
+               '<input qe qe-tunnel="$value into $$global.color">',
+               ' <button id="random-color">random</button>',
+               '<br><button id="success">works great</button> <button id="failure">not so much</button>',
+               '</body>'].join(""),
+        run: function (done) {
+            QE();
+            document.getElementById("success").addEventListener("click", function () { done(true); });
+            document.getElementById("failure").addEventListener("click", function () { done(false); });
+            document.getElementById("random-color").addEventListener("click", function () {
+                var rgb = [0,0,0].map(function () { return Math.random() * 255 | 0;});
+                tools.qs("input").value = "rgb(" + rgb.join() + ")";
+            });
+        },
+    });    
         
     window.QETest = QETest;
     window.QETestResult = QETestResult;
