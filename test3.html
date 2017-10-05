@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <script src="scope.js"></script>
+        <script src="dom.js"></script>
+        <style>
+            #foo {
+                width: 200px;
+                height: 200px;
+                background: green;
+                border: 4px solid transparent;
+            }
+            #foo:hover {
+                background: red;
+            }
+            #foo.wide {
+                width: 400px;
+            }
+            #foo.toggled {
+                border-color: blue;
+            }
+            [hovered="element1"] { color: red; }
+            [hovered="element2"] { color: green; }
+            [hovered="element3"] { color: blue; }
+        </style>
+    </head>
+    <body qe="body" qe:style='mouseOverDiv ? "background:yellow" : false'>
+        <div id="foo" qe qe:class='{wide: $hover, toggled: toggle&&!$hover}' qe-tunnel="$hover into $$parent.mouseOverDiv"></div>
+        <p qe qe:style="$hover && input.$focus ? 'font-weight: bold' : false">Hello world.</p>
+        <p qe qe:style="($hover ? 'font-style:italic;' : '') + (input.$focus ? 'font-weight: bold' : '')">Hello world again.</p>
+        <input type="text" qe qe-tunnel="$$self into body.input">
+        <div qe="group" qe:hovered="hoveredElementId">
+            <div qe qe-tunnel="$$element.getAttribute('id') into group.hoveredElementId if $hover" id="element1">Element 1</div>
+            <div qe qe-tunnel="$$element.getAttribute('id') into group.hoveredElementId if $hover" id="element2">Element 2</div>
+            <div qe qe-tunnel="$$element.getAttribute('id') into group.hoveredElementId if $hover" id="element3">Element 3</div>
+        </div>
+    </body>
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            QE();
+            
+            var foo = document.getElementById("foo");
+            foo.QEScope.set("toggle", false);
+            var interv = setInterval(function () {
+                foo.QEScope.set("toggle", !foo.QEScope.toggle);
+            }, 1000);
+        });
+    </script>
+</html>
