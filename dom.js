@@ -84,7 +84,7 @@
         };
         var getCurrenValue = function () {
             var type = elem.type;
-            if (type === "radio") {
+            if (type === "radio" || type === "checkbox") {
                 return elem.checked;
             }
             return elem.value;
@@ -256,7 +256,7 @@
         // and b) triggers a custom event
         descriptor.set = function () {
             oldSetter.apply(this, arguments);
-            console.log(propertyName,"on",this,"modified");
+            //console.log(propertyName,"on",this,"modified");
             triggerModifiedEvent(this);
         };
     
