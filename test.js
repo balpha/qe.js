@@ -119,7 +119,7 @@
             QE();
             document.getElementById("success").addEventListener("click", function () { done(true); });
             document.getElementById("failure").addEventListener("click", function () { done(false); });
-        },
+        }
     });
     
     TESTS.push({
@@ -138,8 +138,36 @@
                 var rgb = [0,0,0].map(function () { return Math.random() * 255 | 0;});
                 tools.qs("input").value = "rgb(" + rgb.join() + ")";
             });
-        },
-    });    
+        }
+    });
+    
+    TESTS.push({
+        name: "previously missing properties are still dependencies",
+        body: ['<div class="form-container" qe qe:class="{\'focus-inside\': inputHasFocus }">',
+                '<input id="one" type="text" qe qe-tunnel="$focus into $$parent.inputHasFocus if $$parent.useFirst"><br>',
+                '<input id="two" type="text" qe qe-tunnel="$focus into $$parent.inputHasFocus if !$$parent.useFirst"><br>',
+                '<label><input id="cb" type="checkbox" qe qe-tunnel="$value into $$parent.useFirst">Use the first input to control the focus-inside style</label>',
+                '</div>'].join(""),
+        run: function (done) {
+            QE();
+            var ok = !tools.qs(".form-container").classList.contains("focus-inside");
+            tools.qs("#one").focus();
+            ok = ok && !tools.qs(".form-container").classList.contains("focus-inside");
+            tools.qs("#two").focus();
+            ok = ok && tools.qs(".form-container").classList.contains("focus-inside");
+            tools.qs("#two").blur();
+            ok = ok && !tools.qs(".form-container").classList.contains("focus-inside");
+            tools.qs("#cb").checked = true;
+            ok = ok && !tools.qs(".form-container").classList.contains("focus-inside");
+            tools.qs("#one").focus();
+            ok = ok && tools.qs(".form-container").classList.contains("focus-inside");
+            tools.qs("#two").focus();
+            ok = ok && !tools.qs(".form-container").classList.contains("focus-inside");
+            tools.qs("#two").blur();
+            ok = ok && !tools.qs(".form-container").classList.contains("focus-inside");
+            done(ok);
+        }
+    });
         
     window.QETest = QETest;
     window.QETestResult = QETestResult;

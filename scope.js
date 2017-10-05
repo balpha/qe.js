@@ -119,8 +119,9 @@
         
         var deps = this._dependents[name];
         if (deps) {
-            if (newValIsGetter)
+            if (newValIsGetter) {
                 newVal = newVal();
+            }
             deps = deps.slice();
             for (var i = 0; i < deps.length; i++) {
                 deps[i](this, name, newVal, oldVal);
@@ -289,7 +290,8 @@
         
         function evaluate () {
             if (evalutating) {
-                throw "cyclic dependency when evaluating " + exp;
+                return;
+                //throw "cyclic dependency when evaluating " + exp;
             }
             evalutating = true;
             recordAccess();
@@ -302,7 +304,7 @@
                 threw = true;
             }
             var newDependencies = endRecordAccess();
-            if (threw) {
+            if (threw||true) { // the dependency might not have been defined yet -- must watch for everything for now; with Proxy this can become smarter
                 newDependencies.push([scope, null]);                
             }
             if (myDependencies) for (var i = 0; i < myDependencies.length; i++) {

@@ -22,6 +22,15 @@
             [hovered="element1"] { color: red; }
             [hovered="element2"] { color: green; }
             [hovered="element3"] { color: blue; }
+            
+            .form-container {
+                border: 1px solid #bbb;
+                display: inline-block;
+                padding: 15px;
+            }
+            .focus-inside {
+                box-shadow: 0 0 5px rgba(0,127,255,0.4);
+            }
         </style>
     </head>
     <body qe="body" qe:style='mouseOverDiv ? "background:yellow" : false'>
@@ -34,7 +43,28 @@
             <div qe qe-tunnel="$$element.getAttribute('id') into group.hoveredElementId if $hover" id="element2">Element 2</div>
             <div qe qe-tunnel="$$element.getAttribute('id') into group.hoveredElementId if $hover" id="element3">Element 3</div>
         </div>
+        
+        
         <input type="radio" qe qe:style="$value ? 'margin-left: 50px': ''">
+        
+        <br>
+        <br>
+        
+        
+        
+        <div class="form-container" qe qe:class="{'focus-inside': inputHasFocus }">
+            <input type="text" qe qe-tunnel="$focus into $$parent.inputHasFocus if useFirst">
+            <br>
+            <input type="text" qe qe-tunnel="$focus into $$parent.inputHasFocus if !useFirst">
+            <br>
+            <label>
+                <input type="checkbox" qe qe-tunnel="$value into $$parent.useFirst">
+                Use the first input to control the focus-inside style
+            </label>
+        </div>
+        
+        
+        
     </body>
     <script>
         document.addEventListener("DOMContentLoaded", function() {
