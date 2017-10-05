@@ -305,11 +305,13 @@
             if (threw) {
                 newDependencies.push([scope, null]);                
             }
-            if (myDependencies) for (var dep of myDependencies) {
+            if (myDependencies) for (var i = 0; i < myDependencies.length; i++) {
+                var dep = myDependencies[i];
                 dep[0].off(dep[1], onChange);
             }
             myDependencies = newDependencies;
-            for (var dep of myDependencies) {
+            if (myDependencies) for (var i = 0; i < myDependencies.length; i++) {
+                var dep = myDependencies[i];
                 dep[0].on(dep[1], onChange);
             }
             if (initial || value !== newValue) {
