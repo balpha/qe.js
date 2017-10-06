@@ -34,7 +34,6 @@
         var iframe = document.createElement("iframe");
         iframe.src = "test.html?" + id;
         tools.qs("#iframeholder").appendChild(iframe);
-        
     }
     
     function testCase(id) {
@@ -61,8 +60,16 @@
         }
     };
     
+    // IE doesn't have Object.assign
+    function copy(target, from) {
+        for (var p in from) if (from.hasOwnProperty(p)) {
+            target[p] = from[p];
+        }
+        return target;
+    }
+    
     function TEST(t){
-        var t1 = Object.assign({}, t);
+        var t1 = copy({}, t);
         t1.run = function (done) {
             document.body.outerHTML = t1.body;
             QE();
@@ -70,7 +77,7 @@
         };
         t1.name = "[static] " + t1.name;
         
-        var t2 = Object.assign({}, t);
+        var t2 = copy({}, t);
         t2.run = function (done) {
             var div = document.createElement("div");
             document.body.outerHTML = t1.body;
@@ -130,6 +137,15 @@
         
     }
     
+    // anything that happens in response to a focus or blur has to be checked
+    // asynchronously in IE (not Edge), because it fires those events asynchronously.
+    function asyncInIE (f) {
+        f();
+    }
+    if (/Trident/.test(navigator.userAgent)) {
+        asyncInIE = function(f){ setTimeout(f, 10); };
+    }
+    
     TEST({
         name: "simple tunnel",
         body: "<body qe qe:x='data' qe-tunnel='42 into data'></body>",
@@ -145,12 +161,19 @@
             var ok = true;
             var inp = tools.qs("input");
             inp.blur();
-            ok = ok && tools.attrIsEmpty("div", "class");
-            inp.focus();
-            ok = ok && tools.attrIs("div", "class", "focuswithin");
-            inp.blur();
-            ok = ok && tools.attrIsEmpty("div", "class");
-            done(ok);
+            asyncInIE(function () {
+                ok = ok && tools.attrIsEmpty("div", "class");
+                inp.focus();
+                asyncInIE(function () {
+                    ok = ok && tools.attrIs("div", "class", "focuswithin");
+                    //debugger;
+                    inp.blur();
+                    asyncInIE(function () {
+                        ok = ok && tools.attrIsEmpty("div", "class");
+                        done(ok);
+                    });
+                });
+            });
         }
     });
     
@@ -195,10 +218,10 @@
         },
         manual: true
     });
-    
+    // 
     TEST({
         name: "$value for text inputs and $$global, manual",
-        body: ['<body><div qe qe:style="\'width:50px;height:50px;background-color:\' + color"></div>',
+        body: ['<body><div qe qe:style="\'width:50px;height:50px;\'+ (color ? \'background-color:\' + color : \'\')"></div>',
                'Type a CSS color here, and also try the "random" button:<br>',
                '<input qe qe-tunnel="$value into $$global.color">',
                ' <button id="random-color">random</button>',
@@ -225,20 +248,32 @@
         run: function (done) {
             var ok = !tools.qs(".form-container").classList.contains("focus-inside");
             tools.qs("#one").focus();
-            ok = ok && !tools.qs(".form-container").classList.contains("focus-inside");
-            tools.qs("#two").focus();
-            ok = ok && tools.qs(".form-container").classList.contains("focus-inside");
-            tools.qs("#two").blur();
-            ok = ok && !tools.qs(".form-container").classList.contains("focus-inside");
-            tools.qs("#cb").checked = true;
-            ok = ok && !tools.qs(".form-container").classList.contains("focus-inside");
-            tools.qs("#one").focus();
-            ok = ok && tools.qs(".form-container").classList.contains("focus-inside");
-            tools.qs("#two").focus();
-            ok = ok && !tools.qs(".form-container").classList.contains("focus-inside");
-            tools.qs("#two").blur();
-            ok = ok && !tools.qs(".form-container").classList.contains("focus-inside");
-            done(ok);
+            asyncInIE(function () {
+                ok = ok && !tools.qs(".form-container").classList.contains("focus-inside");
+                tools.qs("#two").focus();
+                asyncInIE(function () {
+                    ok = ok && tools.qs(".form-container").classList.contains("focus-inside");
+                    tools.qs("#two").blur();
+                    asyncInIE(function () {
+                        ok = ok && !tools.qs(".form-container").classList.contains("focus-inside");
+                        tools.qs("#cb").checked = true;
+                        ok = ok && !tools.qs(".form-container").classList.contains("focus-inside");
+                        tools.qs("#one").focus();
+                        asyncInIE(function () {
+                            ok = ok && tools.qs(".form-container").classList.contains("focus-inside");
+                            tools.qs("#two").focus();
+                            asyncInIE(function () {
+                                ok = ok && !tools.qs(".form-container").classList.contains("focus-inside");
+                                tools.qs("#two").blur();
+                                asyncInIE(function () {
+                                    ok = ok && !tools.qs(".form-container").classList.contains("focus-inside");
+                                    done(ok);
+                                });
+                            });
+                        });
+                    });
+                });
+            });
         }
     });
         
