@@ -4,8 +4,42 @@
         <script src="scope.js"></script>
         <script src="dom.js"></script>
         <script src="test.js"></script>
+        <style>
+            * {
+                box-sizing: border-box;
+            }
+            body {
+                display: flex;
+                padding: 0;
+            }
+            #log, #iframeholder {
+                width: 50%;
+                padding: 20px;
+            }
+            iframe {
+                width: 100%;
+                height: 500px;
+            }
+            #log > p {
+                margin: 0 0 0.5em 20px;
+                text-indent: -20px;
+            }
+            .pending {
+                color: #44b;
+            }
+            .fail {
+                color: #800;
+            }
+            .pass {
+                color: #080;
+            }
+        </style>
         <script>
             document.addEventListener("DOMContentLoaded", QETest);
         </script>
     </head>
+    <body>
+        <div id="log"></div>
+        <div id="iframeholder"></div>
+    </body>
 </html>

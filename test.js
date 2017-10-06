@@ -1,18 +1,21 @@
 (function () {
-    var TESTS = [];
+    var MANUAL_TESTS = [], AUTOMATIC_TESTS = [], TESTS;
     var nextTestId = 0;
     function QETest() {
+        TESTS = AUTOMATIC_TESTS.concat(MANUAL_TESTS);
         if (location.search) {
+            tools.qs("head").removeChild(tools.qs("style"));
             testCase(location.search.substr(1));
         } else {
             nextTest();
         }
     }
     function QETestResult(id, success) {
-        var p = document.createElement("p");
-        p.textContent = TESTS[id].name + ": " + success;
-        document.body.appendChild(p);
-        document.body.removeChild(document.querySelector("iframe"));
+        var p = document.getElementById("result-" + id);
+        p.textContent = TESTS[id].name + ": " + (success ? "pass" : "fail");
+        p.classList.remove("pending");
+        p.classList.add(success ? "pass" : "fail");
+        tools.qs("#iframeholder").removeChild(tools.qs("iframe"));
         nextTest();
     }
     
@@ -21,16 +24,21 @@
         if (!TESTS[id])
             return;
         nextTestId++;
+
+        var p = document.createElement("p");
+        p.classList.add("pending");
+        p.id = "result-" + id;
+        p.textContent = TESTS[id].name + ": pending";
+        tools.qs("#log").appendChild(p);
         
         var iframe = document.createElement("iframe");
         iframe.src = "test.html?" + id;
-        document.body.appendChild(iframe);
+        tools.qs("#iframeholder").appendChild(iframe);
         
     }
     
     function testCase(id) {
         var test = TESTS[id];
-        document.body.outerHTML = test.body;
         test.run(function (success) {
             window.parent.QETestResult(id, success);
         });
@@ -53,20 +61,87 @@
         }
     };
     
-    TESTS.push({
+    function TEST(t){
+        var t1 = Object.assign({}, t);
+        t1.run = function (done) {
+            document.body.outerHTML = t1.body;
+            QE();
+            t.run(done);
+        };
+        t1.name = "[static] " + t1.name;
+        
+        var t2 = Object.assign({}, t);
+        t2.run = function (done) {
+            var div = document.createElement("div");
+            document.body.outerHTML = t1.body;
+            var children = Array.prototype.slice.call(document.body.childNodes);
+            var addAttr = [];
+            for (var i = 0; i < children.length; i++) {
+                var child = children[i];
+                div.appendChild(child);
+            }
+            var withAttr = div.querySelectorAll("[qe]");
+            for (var i = 0; i < withAttr.length; i++) {
+                if (Math.random() < 0.5)
+                    continue;
+                var el = withAttr[i];
+                addAttr.push([el, el.getAttribute("qe")]);
+                el.removeAttribute("qe");
+            }
+            
+            var body = document.body;
+            if (Math.random() >= 0.5 && body.hasAttribute("qe")) {
+                addAttr.push([body, body.getAttribute("qe")]);
+                body.removeAttribute("qe");
+            }
+            QE();
+            setTimeout(function () {
+                for (var i = 0; i < children.length; i++) {
+                    document.body.appendChild(children[i]);
+                }
+                var added = 0;
+                for (var i = 0; i < addAttr.length; i++) {
+                    (function (i) {
+                        setTimeout(function () {
+                            addAttr[i][0].setAttribute("qe", addAttr[i][1]);
+                            added++;
+                            if (added === addAttr.length) {
+                                setTimeout(function () {
+                                    t.run(done);
+                                }, 0);
+                            }
+                        }, Math.random() * 100);
+                    })(i);
+                }
+                if (!addAttr.length) {
+                    setTimeout(function () {
+                        t.run(done);
+                    }, 0);                    
+                }
+                
+            }, 0);
+        };
+        t2.name = "[dynamic] " + t2.name;
+        
+        var into = t.manual ? MANUAL_TESTS : AUTOMATIC_TESTS;
+        
+        into.push(t1);
+        into.push(t2);
+        
+    }
+    
+    TEST({
         name: "simple tunnel",
         body: "<body qe qe:x='data' qe-tunnel='42 into data'></body>",
         run: function (done) {
-            QE();
             done(tools.attrIs("body", "x", "42"));
         }
     });
     
-    TESTS.push({
+    TEST({
         name: "class and $focus",
         body: '<body><div qe="container" qe:class="{focuswithin: childHasFocus}"><input qe qe-tunnel="$focus into container.childHasFocus"></div></body>',
         run: function (done) {
-            QE();
             var ok = true;
             var inp = tools.qs("input");
             inp.blur();
@@ -79,7 +154,7 @@
         }
     });
     
-    TESTS.push({
+    TEST({
         name: "conditional tunnel and $value for radios, programmatic",
         body: ['<body><div qe qe:selected-child="selected.$$element.getAttribute(\'value\')">',
                '<input type="radio" name="radiogroup" value="1" qe qe-tunnel="$$self into $$parent.selected if $value">',
@@ -87,7 +162,6 @@
                '<input type="radio" name="radiogroup" value="3" qe qe-tunnel="$$self into $$parent.selected if $value">',
                '</div></body>'].join(""),
         run: function (done) {
-            QE();
             var ok = tools.attrIsEmpty("div", "selected-child");
             for (i=0; i < 100; i++) {
                 var choice = Math.random() * 4 | 0;
@@ -106,7 +180,7 @@
         }
     });
 
-    TESTS.push({
+    TEST({
         name: "conditional tunnel and $value for radios, manual",
         body: ['<body><div qe qe:selected-child="selected.$$element.getAttribute(\'value\')">',
                '<label><input type="radio" name="radiogroup" value="1" qe qe-tunnel="$$self into $$parent.selected if $value"> Option 1</label><br>',
@@ -116,13 +190,13 @@
                '<br><button id="success">works great</button> <button id="failure">not so much</button>',
                '</body>'].join(""),
         run: function (done) {
-            QE();
             document.getElementById("success").addEventListener("click", function () { done(true); });
             document.getElementById("failure").addEventListener("click", function () { done(false); });
-        }
+        },
+        manual: true
     });
     
-    TESTS.push({
+    TEST({
         name: "$value for text inputs and $$global, manual",
         body: ['<body><div qe qe:style="\'width:50px;height:50px;background-color:\' + color"></div>',
                'Type a CSS color here, and also try the "random" button:<br>',
@@ -131,25 +205,24 @@
                '<br><button id="success">works great</button> <button id="failure">not so much</button>',
                '</body>'].join(""),
         run: function (done) {
-            QE();
             document.getElementById("success").addEventListener("click", function () { done(true); });
             document.getElementById("failure").addEventListener("click", function () { done(false); });
             document.getElementById("random-color").addEventListener("click", function () {
                 var rgb = [0,0,0].map(function () { return Math.random() * 255 | 0;});
                 tools.qs("input").value = "rgb(" + rgb.join() + ")";
             });
-        }
+        },
+        manual: true
     });
     
-    TESTS.push({
-        name: "previously missing properties are still dependencies",
+    TEST({
+        name: "previously missing properties are still dependencies; $value for checkboxes",
         body: ['<div class="form-container" qe qe:class="{\'focus-inside\': inputHasFocus }">',
                 '<input id="one" type="text" qe qe-tunnel="$focus into $$parent.inputHasFocus if $$parent.useFirst"><br>',
                 '<input id="two" type="text" qe qe-tunnel="$focus into $$parent.inputHasFocus if !$$parent.useFirst"><br>',
                 '<label><input id="cb" type="checkbox" qe qe-tunnel="$value into $$parent.useFirst">Use the first input to control the focus-inside style</label>',
                 '</div>'].join(""),
         run: function (done) {
-            QE();
             var ok = !tools.qs(".form-container").classList.contains("focus-inside");
             tools.qs("#one").focus();
             ok = ok && !tools.qs(".form-container").classList.contains("focus-inside");
