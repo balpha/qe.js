@@ -1,6 +1,7 @@
 (function () {
     var globalScope;
     var MODIFIED_EVENT = "qe:modified-programmatically";
+    var EDGE = /Edge/.test(navigator.userAgent);
     
     function build() {
         if (globalScope)
@@ -135,6 +136,14 @@
                         } else if (val === false || val === null || val === undefined) {
                             elem.removeAttribute(actualAttr);
                         } else {
+                            if (EDGE && actualAttr === "style") {
+                                // Under some conditions, setting the style attribute crashes Edge
+                                // (it happens consistently in the "$value for text inputs..." test).
+                                // It appears that there's some sort of initialization race, because
+                                // just *accessing* them element's style property before setting the
+                                // atribute fixes things.
+                                elem.style;
+                            }
                             elem.setAttribute(actualAttr, "" + val);
                         }
                     });
