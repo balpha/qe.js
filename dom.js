@@ -151,7 +151,7 @@
                         }
                     });
                 } else if (attr.name === "qe-tunnel") {
-                    var tunnelexprs = attr.value.split(",");
+                    var tunnelexprs = attr.value.split(";");
                     for (var j = 0; j < tunnelexprs.length; j++) {
                         var te = tunnelexprs[j].trim();
                         if (/^@/.test(te)) {
@@ -180,7 +180,7 @@
     function Tunnel(scope, definition, onDestroy) {
         var parts = definition.split(" into ");
         if (parts.length != 2) {
-            throw "invalid syntax in tunnel expression " + attr.value; 
+            throw "invalid syntax in tunnel expression " + definition; 
         }
         // FIXME: also check that there's only dot-lookup
         

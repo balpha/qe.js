@@ -240,11 +240,11 @@
     
     TEST({
         name: "previously missing properties are still dependencies; $value for checkboxes",
-        body: ['<div class="form-container" qe qe:class="{\'focus-inside\': inputHasFocus }">',
+        body: ['<body><div class="form-container" qe qe:class="{\'focus-inside\': inputHasFocus }">',
                 '<input id="one" type="text" qe qe-tunnel="$focus into $$parent.inputHasFocus if $$parent.useFirst"><br>',
                 '<input id="two" type="text" qe qe-tunnel="$focus into $$parent.inputHasFocus if !$$parent.useFirst"><br>',
                 '<label><input id="cb" type="checkbox" qe qe-tunnel="$value into $$parent.useFirst">Use the first input to control the focus-inside style</label>',
-                '</div>'].join(""),
+                '</div></body>'].join(""),
         run: function (done) {
             var ok = !tools.qs(".form-container").classList.contains("focus-inside");
             tools.qs("#one").focus();
@@ -280,12 +280,12 @@
     TEST({
         name: "scope constants and indirect tunnels",
         body: [
-            '<div qe="outer" qe::tselected="$$parent.$$element.id into outer.selected if $value" qe:aria-activedescendent="selected">',
+            '<body><div qe="outer" qe::tselected="$$parent.$$element.id into outer.selected if $value" qe:aria-activedescendent="selected">',
             '<ul>',
             '<li qe id="item-1"><input type="radio" name="group" qe qe-tunnel="@tselected"></li>',
             '<li qe id="item-2"><input type="radio" name="group" qe qe-tunnel="@tselected"></li>',
             '<li qe id="item-3"><input type="radio" name="group" qe qe-tunnel="@tselected"></li>',
-            '</ul></div>'
+            '</ul></div></body>'
         ].join(""),
         run: function (done) {
             var ok = tools.attrIsEmpty("div", "aria-activedescendent");
@@ -297,7 +297,16 @@
             done(ok);
         }
     });
-        
+    
+    TEST({
+        name: "multiple tunnels",
+        body: [
+            '<body><div qe qe:x="v4" qe-tunnel="v3 into v4; v2 into v3; v1 into v2; \'hello\' into v1"></body>'
+        ].join(""),
+        run: function (done) {
+            done(tools.attrIs("div", "x", "hello"));
+        }
+    });
     
     window.QETest = QETest;
     window.QETestResult = QETestResult;
