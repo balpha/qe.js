@@ -119,7 +119,10 @@
             var attrs = Array.prototype.slice.call(elem.attributes);
             for (var i = 0; i < attrs.length; i++) {
                 var attr = attrs[i];
-                if (/^qe:/.test(attr.name)) {
+                if (/^qe::/.test(attr.name)) {
+                    var prop = attr.name.substr(4);
+                    scope.set(prop, attr.value);
+                } else if (/^qe:/.test(attr.name)) {
                     var actualAttr = attr.name.substr(3);
                     Expression(attr.value, scope, function (val) {
                         
@@ -150,66 +153,18 @@
                 } else if (attr.name === "qe-tunnel") {
                     var tunnelexprs = attr.value.split(",");
                     for (var j = 0; j < tunnelexprs.length; j++) {
-                        var parts = tunnelexprs[j].split(" into ");
-                        if (parts.length != 2) {
-                            throw "invalid syntax in tunnel expression " + attr.value; 
-                        }
-                        // FIXME: also check that there's only dot-lookup
-                        
-                        var exitAndCondition = parts[1].split(" if ");
-                        
-                        if (exitAndCondition.length > 2) {
-                            throw "invalid syntax in tunnel expression " + attr.value; 
-                        }
-                        
-                        var tunnelExit = exitAndCondition[0].trim();
-                        var lastDot = tunnelExit.lastIndexOf(".");
-                        var tunnelExitScopeExpr, tunnelExitProperty;
-                        if (lastDot !== -1) {
-                            tunnelExitScopeExpr = tunnelExit.substr(0, lastDot);
-                        } else {
-                            tunnelExitScopeExpr = "$$self"; 
-                        }
-                        tunnelExitProperty = tunnelExit.substr(lastDot + 1);
-                        var tunnelEntrance = parts[0];
-                        var tunnelCondition = exitAndCondition[1];
-                        
-                        var tunnelExitScope;
-                        var tunnelValue;
-                        var tunnelActive = !tunnelCondition;
-                        var lastSetId = -1;
-                        var doTunnel = function () {
-                            if (tunnelExitScope) {
-                                if (tunnelActive)
-                                    lastSetId = tunnelExitScope.set(tunnelExitProperty, tunnelValue);
-                                else
-                                    lastSetId = tunnelExitScope.setIfPreviouslySet(tunnelExitProperty, undefined, lastSetId);
-                            }
-                        };
-                        Expression(tunnelExitScopeExpr, scope, function (s) {
-                            if (tunnelActive && tunnelExitScope) {
-                                tunnelActive = false;
-                                doTunnel();
-                                tunnelActive = true;
-                            }
-                            tunnelExitScope = s;
-                            doTunnel();
-                        });
-
-                        if (tunnelCondition) {
-                            Expression(tunnelCondition, scope, function(v) {
-                                tunnelActive = !!v;
-                                doTunnel();
+                        var te = tunnelexprs[j].trim();
+                        if (/^@/.test(te)) {
+                            var tunnel;
+                            Expression(te.substr(1), scope, function (val) {
+                                if (tunnel) {
+                                    tunnel.destroy();
+                                }
+                                tunnel = Tunnel(scope, val, function () { tunnel = null; });
                             });
-                            
+                        } else {
+                            Tunnel(scope, tunnelexprs[j]);                     
                         }
-                        
-                        Expression(tunnelEntrance, scope, function (v) {
-                            tunnelValue = v;
-                            doTunnel();
-                        });
-                        
-                        
                         
                     }
                 }
@@ -218,6 +173,78 @@
         for (var i = 0; i < elem.children.length; i++) {
             buildScopes(elem.children[i], nextParentScope);
         }
+    }
+    
+    function Tunnel(scope, definition, onDestroy) {
+        var parts = definition.split(" into ");
+        if (parts.length != 2) {
+            throw "invalid syntax in tunnel expression " + attr.value; 
+        }
+        // FIXME: also check that there's only dot-lookup
+        
+        var exitAndCondition = parts[1].split(" if ");
+        
+        if (exitAndCondition.length > 2) {
+            throw "invalid syntax in tunnel expression " + attr.value; 
+        }
+        
+        var tunnelExit = exitAndCondition[0].trim();
+        var lastDot = tunnelExit.lastIndexOf(".");
+        var tunnelExitScopeExpr, tunnelExitProperty;
+        if (lastDot !== -1) {
+            tunnelExitScopeExpr = tunnelExit.substr(0, lastDot);
+        } else {
+            tunnelExitScopeExpr = "$$self"; 
+        }
+        tunnelExitProperty = tunnelExit.substr(lastDot + 1);
+        var tunnelEntrance = parts[0];
+        var tunnelCondition = exitAndCondition[1];
+        
+        var tunnelExitScope;
+        var tunnelValue;
+        var tunnelActive = !tunnelCondition;
+        var lastSetId = -1;
+        var expressions = [];
+        var doTunnel = function () {
+            if (tunnelExitScope) {
+                if (tunnelActive)
+                    lastSetId = tunnelExitScope.set(tunnelExitProperty, tunnelValue);
+                else
+                    lastSetId = tunnelExitScope.setIfPreviouslySet(tunnelExitProperty, undefined, lastSetId);
+            }
+        };
+        expressions.push(Expression(tunnelExitScopeExpr, scope, function (s) {
+            if (tunnelActive && tunnelExitScope) {
+                tunnelActive = false;
+                doTunnel();
+                tunnelActive = true;
+            }
+            tunnelExitScope = s;
+            doTunnel();
+        }, destroy));
+
+        if (tunnelCondition) {
+            expressions.push(Expression(tunnelCondition, scope, function(v) {
+                tunnelActive = !!v;
+                doTunnel();
+            }, destroy));
+        }
+        
+        expressions.push(Expression(tunnelEntrance, scope, function (v) {
+            tunnelValue = v;
+            doTunnel();
+        }, destroy));
+        
+        function destroy() {
+            for (var i = 0; i < expressions.length; i++) {
+                expressions[i].destroy();
+            }
+            expressions = null;
+        }
+        
+        return {
+            destroy: destroy
+        };
     }
     
     function anyNodeIsQe(nodeList) {

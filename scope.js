@@ -173,7 +173,7 @@
         this._tearingDown = true;
         for (var i = 0; i < this._children.length; i++) {
             this._children[i].tearingDown();
-        }        
+        }
     }
     ScopePrivate.prototype.tearDown = function () {
         //console.log("tearing down", this);
@@ -267,25 +267,46 @@
     
     // ----------------------------------
     
-    function ExpressionPrivate(exp, scope, callback) {
+    function ExpressionPrivate(exp, scope, callback, onDestroy) {
         
         var func = new Function("scope", "with(scope){return " + exp +"}");
         var value;
+        var destroying = false;
         var onChange = function () {
             //console.log("expression",exp,"has changed");
-            if (scope._tearingDown) {
+            if (scope._tearingDown || destroying) {
+                var deps = myDependencies;
+                myDependencies = null;
+                if (deps) for (var i = 0; i < deps.length; i++) {
+                    var dep = deps[i];
+                    dep[0].off(dep[1], onChange);
+                }
+                if (onDestroy)
+                    onDestroy();
                 return;
             }
             evaluate();
         };
         
-        onChange.displayName="onChange[" + exp +"]"
+        onChange.displayName="onChange[" + exp +"]";
         
         var myDependencies;
         var initial = true;
         var evalutating = false;
         evaluate();
         initial = false;
+        
+        // only if you're ready to handle destruction can we allow you to keep a reference to us
+        if (onDestroy) {
+            return {
+                destroy: function () {
+                    if (destroying)
+                        return;
+                    destroying = true;
+                    onChange();
+                }
+            }
+        }
         
         
         function evaluate () {

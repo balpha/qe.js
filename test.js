@@ -276,7 +276,29 @@
             });
         }
     });
+    
+    TEST({
+        name: "scope constants and indirect tunnels",
+        body: [
+            '<div qe="outer" qe::tselected="$$parent.$$element.id into outer.selected if $value" qe:aria-activedescendent="selected">',
+            '<ul>',
+            '<li qe id="item-1"><input type="radio" name="group" qe qe-tunnel="@tselected"></li>',
+            '<li qe id="item-2"><input type="radio" name="group" qe qe-tunnel="@tselected"></li>',
+            '<li qe id="item-3"><input type="radio" name="group" qe qe-tunnel="@tselected"></li>',
+            '</ul></div>'
+        ].join(""),
+        run: function (done) {
+            var ok = tools.attrIsEmpty("div", "aria-activedescendent");
+            for (var i = 0; i < 50; i++) {
+                var choice = "item-" + (1 + Math.random() * 3 | 0);
+                tools.qs("#" + choice + " input").checked = true;
+                ok = ok && tools.attrIs("div", "aria-activedescendent", choice);
+            }
+            done(ok);
+        }
+    });
         
+    
     window.QETest = QETest;
     window.QETestResult = QETestResult;
 })();
