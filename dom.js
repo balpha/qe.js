@@ -160,7 +160,9 @@
                                 if (tunnel) {
                                     tunnel.destroy();
                                 }
-                                tunnel = Tunnel(scope, val, function () { tunnel = null; });
+                                if (val) {
+                                    tunnel = Tunnel(scope, val, function () { tunnel = null; });
+                                }
                             });
                         } else {
                             Tunnel(scope, tunnelexprs[j]);                     
