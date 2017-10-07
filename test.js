@@ -280,11 +280,11 @@
     TEST({
         name: "scope constants and indirect tunnels",
         body: [
-            '<body><div qe="outer" qe::tselected="$$parent.$$element.id into outer.selected if $value" qe:aria-activedescendent="selected">',
+            '<body><div qe="outer" qe::t-selected="$$parent.$$element.id into outer.selected if $value" qe:aria-activedescendent="selected">',
             '<ul>',
-            '<li qe id="item-1"><input type="radio" name="group" qe qe-tunnel="@tselected"></li>',
-            '<li qe id="item-2"><input type="radio" name="group" qe qe-tunnel="@tselected"></li>',
-            '<li qe id="item-3"><input type="radio" name="group" qe qe-tunnel="@tselected"></li>',
+            '<li qe id="item-1"><input type="radio" name="group" qe qe-tunnel="@tSelected"></li>',
+            '<li qe id="item-2"><input type="radio" name="group" qe qe-tunnel="@tSelected"></li>',
+            '<li qe id="item-3"><input type="radio" name="group" qe qe-tunnel="@tSelected"></li>',
             '</ul></div></body>'
         ].join(""),
         run: function (done) {

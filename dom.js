@@ -107,6 +107,10 @@
         return scope;
     }
     
+    function unKebab(s) {
+        return s.replace(/-([a-z])/g, function (_, c) { return c.toUpperCase(); });
+    }
+    
     function buildScopes(elem, parentScope) {
         if (elem.nodeType != Node.ELEMENT_NODE)
             return;
@@ -120,7 +124,7 @@
             for (var i = 0; i < attrs.length; i++) {
                 var attr = attrs[i];
                 if (/^qe::/.test(attr.name)) {
-                    var prop = attr.name.substr(4);
+                    var prop = unKebab(attr.name.substr(4));
                     scope.set(prop, attr.value);
                 } else if (/^qe:/.test(attr.name)) {
                     var actualAttr = attr.name.substr(3);
