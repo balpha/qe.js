@@ -124,6 +124,9 @@
                     scope.set(prop, attr.value);
                 } else if (/^qe:/.test(attr.name)) {
                     var actualAttr = attr.name.substr(3);
+                    if (/^qe:/.test(actualAttr)) {
+                        throw "that way lies madness, I think";
+                    }
                     Expression(attr.value, scope, function (val) {
                         
                         if (actualAttr === "class" && typeof val !== "string") {
@@ -311,15 +314,11 @@
     }
     
     window.QE = function () {
-        monkeypatchInputs();
-        build();
-        
-        
         var mo = new MutationObserver(function (mrs) {
             for (var i = 0; i < mrs.length; i++) {
                 var mr = mrs[i];
                 
-                if (mr.type === "attributes" && /^qe/.test(mr.attributeName)) {
+                if (mr.type === "attributes" && /^qe/.test(mr.attributeName) && mr.oldValue !== mr.target.getAttribute(mr.attributeName)) {
                     build();
                     return;
                 }
@@ -334,7 +333,10 @@
         mo.observe(document.body, {
             attributes: true,
             childList: true,
-            subtree: true
+            subtree: true,
+            attributeOldValue: true
         });
+        monkeypatchInputs();
+        build();
     }
 })();
