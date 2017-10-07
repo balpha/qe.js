@@ -129,7 +129,7 @@
                 } else if (/^qe:/.test(attr.name)) {
                     var actualAttr = attr.name.substr(3);
                     if (/^qe:/.test(actualAttr)) {
-                        throw "that way lies madness, I think";
+                        throw "I'm sorry Dave, I'm afraid I can't do that."; // technically it works, but I don't see how it would ever be a good idea
                     }
                     Expression(attr.value, scope, function (val) {
                         
