@@ -130,7 +130,7 @@
         if (!stack)
             return;
         var any = false;
-        for (var i = 0; i < stack.length; i++) {
+        for (var i = stack.length-1; i >= 0; i--) { // walk backwards -- non-defaults (i.e. tunnels) win
             if (i in stack) {
                 any = true;
                 this.set(name, stack[i]);

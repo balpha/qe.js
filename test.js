@@ -346,7 +346,7 @@
             var ok = tools.attrIs("div", "x", "hello");
             cb.checked = true;
             var cur = tools.qs("div").getAttribute("x");
-            ok = ok && (cur === "hello" || cur === "goodbye");
+            ok = ok && tools.attrIs("div", "x", "goodbye");
             cb.checked = false;
             ok = ok && tools.attrIs("div", "x", "hello");
             done(ok);
