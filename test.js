@@ -352,6 +352,19 @@
             done(ok);
         }
     });
+    TEST({
+        name: "$hover, manual",
+        body: [
+            '<body><div qe style="width: 100px; height: 100px; background: #ccc;"> Hover me<br>',
+            '<span qe qe:style="!$$parent.$hover ? \'display:none\' : false">Thanks!</button></div>',
+            '<br><button id="success">works great</button> <button id="failure">not so much</button>',
+            '</body>'].join(""),
+        run: function (done) {
+            document.getElementById("success").addEventListener("click", function () { done(true); });
+            document.getElementById("failure").addEventListener("click", function () { done(false); });
+        },
+        manual: true
+    });    
         
     window.QETest = QETest;
     window.QETestResult = QETestResult;
