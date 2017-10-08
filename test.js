@@ -30,6 +30,7 @@
         p.id = "result-" + id;
         p.textContent = TESTS[id].name + ": pending";
         tools.qs("#log").appendChild(p);
+        tools.qs("#log").scrollTop = 1e9;
         
         var iframe = document.createElement("iframe");
         iframe.src = "test.html?" + id;
@@ -307,7 +308,51 @@
             done(tools.attrIs("div", "x", "hello"));
         }
     });
-    
+
+    TEST({
+        name: "correct value when returning from multiple tunnels into one property back to a single one",
+        body: [
+            '<body><div qe qe:x="x">',
+            '<input id="one" type="checkbox" qe qe-tunnel="1 into $$parent.x if $value">',
+            '<input id="two" type="checkbox" qe qe-tunnel="2 into $$parent.x if $value">',
+            '</div>',
+            '</body>'
+        ].join(""),
+        run: function (done) {
+            var one = tools.qs("#one");
+            var two = tools.qs("#two");
+            var ok = tools.attrIsEmpty("div", "x");
+            one.checked = true;
+            ok = ok && tools.attrIs("div", "x", "1");
+            two.checked = true;
+            var cur = tools.qs("div").getAttribute("x");
+            ok = ok && (cur === "1" || cur === "2");
+            two.checked = false;
+            ok = ok && tools.attrIs("div", "x", "1");
+            done(ok);
+        }
+    });
+
+    TEST({
+        name: "correct value when a tunnel used to exit in an attribute constant",
+        body: [
+            '<body><div qe qe:x="x" qe::x="hello">',
+            '<input type="checkbox" qe qe-tunnel="\'goodbye\' into $$parent.x if $value">',
+            '</div>',
+            '</body>'
+        ].join(""),
+        run: function (done) {
+            var cb = tools.qs("input");
+            var ok = tools.attrIs("div", "x", "hello");
+            cb.checked = true;
+            var cur = tools.qs("div").getAttribute("x");
+            ok = ok && (cur === "hello" || cur === "goodbye");
+            cb.checked = false;
+            ok = ok && tools.attrIs("div", "x", "hello");
+            done(ok);
+        }
+    });
+        
     window.QETest = QETest;
     window.QETestResult = QETestResult;
 })();

@@ -11,14 +11,18 @@
             body {
                 display: flex;
                 padding: 0;
+                margin: 0;
             }
             #log, #iframeholder {
                 width: 50%;
                 padding: 20px;
+                box-sizing: border-box;
+                max-height: 100vh;
+                overflow: auto;
             }
             iframe {
                 width: 100%;
-                height: 500px;
+                height: 300px;
             }
             #log > p {
                 margin: 0 0 0.5em 20px;

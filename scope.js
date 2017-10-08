@@ -1,7 +1,6 @@
 (function () {
     
     var nextId = 1;
-    var nextSetId = 1;
     var scopes = {};
     
     function ScopePrivate(parent, name) {
@@ -13,7 +12,7 @@
         this._id = nextId;
         this._delayedProps = {};
         this._name = name;
-        this._lastSetId = {};
+        this._valueStacks = {};
         nextId++;
         scopes[this._id] = this;
         if (parent) {
@@ -27,13 +26,31 @@
         });
         var that = this;
         this._publicScope.set = function(name, value) {
-            return that.set(name, value);
+            this.multiSet(name, value, 0);
         };
-        this._publicScope.setIfPreviouslySet = function(name, value, setId) {
-            if (that._lastSetId[name] === setId)
-                return that.set(name, value);
-            return -1;
-        }
+        this._publicScope.multiSet = function(name, value, token) { // token is optional
+            var stack = that._valueStacks[name];
+            if (!stack) {
+                stack = that._valueStacks[name] = [];
+                stack.length = 1;
+            }
+            if (typeof token !== "number") {
+                for (var i = 1; i <= stack.length; i++) { // note  "1" and "<=", both intentional
+                    if (!(i in stack)) {
+                        token = i;
+                        break;
+                    }
+                }
+            }
+            stack[token] = value;
+            that.applyValueStack(name);
+            return token;
+        };
+        this._publicScope.unMultiSet = function (name, token) {
+            var stack = that._valueStacks[name];
+            delete stack[token];
+            that.applyValueStack(name);
+        };
         this._publicScope.createDelayed = function (name, attach, detach, getCurrentValue) {
             that.set(name, {
                 attach: attach,
@@ -67,9 +84,6 @@
         var that = this;
         var shadowing = false;
         var attached = false; // only interesting for delayed
-        var setId = nextSetId;
-        nextSetId++;
-        this._lastSetId[name] = setId;
         if (!this._publicScope.hasOwnProperty(name)) {
             shadowing = name in this._publicScope;
             
@@ -100,7 +114,7 @@
             }
             oldVal = this._data[name];
             if (val === oldVal) {
-                return setId;
+                return;
             }
         }
         this._data[name] = val;
@@ -108,7 +122,24 @@
         if (shadowing) {
             this.notifyShadowing(name);
         }
-        return setId;
+        return;
+    };
+    
+    ScopePrivate.prototype.applyValueStack = function (name) {
+        var stack = this._valueStacks[name];
+        if (!stack)
+            return;
+        var any = false;
+        for (var i = 0; i < stack.length; i++) {
+            if (i in stack) {
+                any = true;
+                this.set(name, stack[i]);
+                break;
+            }
+        }
+        if (!any) {
+            this.set(name, undefined);
+        }
     };
     
     ScopePrivate.prototype.notifyChanged = function(name, newVal, oldVal, newValIsGetter) {

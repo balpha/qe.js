@@ -212,14 +212,16 @@
         var tunnelExitScope;
         var tunnelValue;
         var tunnelActive = !tunnelCondition;
-        var lastSetId = -1;
+        var token;
         var expressions = [];
         var doTunnel = function () {
             if (tunnelExitScope) {
-                if (tunnelActive)
-                    lastSetId = tunnelExitScope.set(tunnelExitProperty, tunnelValue);
-                else
-                    lastSetId = tunnelExitScope.setIfPreviouslySet(tunnelExitProperty, undefined, lastSetId);
+                if (tunnelActive) {
+                    token = tunnelExitScope.multiSet(tunnelExitProperty, tunnelValue, token);
+                } else if (token) {
+                    tunnelExitScope.unMultiSet(tunnelExitProperty, token);
+                    token = null;
+                }
             }
         };
         expressions.push(Expression(tunnelExitScopeExpr, scope, function (s) {
