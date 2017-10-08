@@ -216,7 +216,7 @@
         this._data = {};
         
         if (this._parent) {
-            Object.setPrototypeOf(this._publicScope, Object);
+            Object.setPrototypeOf(this._publicScope, Object.prototype);
             var parent = this._parent;
             this._parent = null;
             parent.childRemoved(this);
@@ -241,6 +241,7 @@
             this._delayedProps[key].detach();
         }
         this._delayedProps = null;
+        this._valueStacks = null;
         delete scopes[this._id];
     };
     
