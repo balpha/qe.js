@@ -34,7 +34,7 @@
             elem.removeEventListener(falseEvent, onFalse);
             onTrue = onFalse = null;
         };
-        var getCurrenValue = function () {
+        var getCurrentValue = function () {
             var found = elem.parentElement.querySelectorAll(selector);
             //console.log(selector, found);
             for (var i = 0; i < found.length; i++) {
@@ -45,7 +45,7 @@
             return false;
         };
         
-        scope.createDelayed(prop, attach, detach, getCurrenValue);
+        scope.createDelayed(prop, attach, detach, getCurrentValue);
     }
 
     function addValue(elem, scope) {
@@ -95,13 +95,71 @@
         scope.createDelayed("$value", attach, detach, getCurrenValue);
     }
     
+    function addAttributes(elem, scope) {
+        var mo;
+        var attrs;
+        var attach = function (setter) {
+            getCurrentValue();
+            mo = new MutationObserver(function (mrs) {
+                for (var i = 0; i < mrs.length; i++) {
+                    var an = mrs[i].attributeName;
+                    var ukan = unKebab(an);
+                    if (elem.hasAttribute(an)) {
+                        var val = elem.getAttribute(an);
+                        attrs.set(an, val);
+                        if (an !== ukan) {
+                            attrs.set(ukan, an);
+                        }
+                    } else {
+                        attrs.set(an, undefined);
+                        if (an !== ukan) {
+                            attrs.set(ukan, undefined);
+                        }
+                    }
+                }
+                // note that we're not calling setter
+            });
+            mo.observe(elem, { attributes: true });
+            setter(attrs);
+        };
+        
+        var detach = function () {
+            if (mo)
+                mo.disconnect();
+            if (attrs)
+                attrs.tearDown();
+            mo = attrs = null;
+        };
+        
+        var getCurrentValue = function () {
+            if (!attrs) {
+                attrs = Scope();
+                var attributes = elem.attributes;
+                for (var i = 0; i < attributes.length; i++) {
+                    var name = attributes[i].name;
+                    var ukname = unKebab(name);
+                    var value = attributes[i].value;
+                    
+                    attrs.set(name, value);
+                    if (name !== ukname) {
+                        attrs.set(ukname, value);
+                    }
+                }
+            }
+            return attrs;
+        };
+        
+        scope.createDelayed("$$attributes", attach, detach, getCurrentValue);
+        
+    }
+    
     function domScope(elem, parentScope, name) {
         var scope = Scope(parentScope, name);
         
         addHover(elem, scope);
         addFocus(elem, scope);
         addValue(elem, scope);
-        
+        addAttributes(elem, scope);
         scope.set("$$element", elem);
         
         return scope;
@@ -120,57 +178,20 @@
             var scope = domScope(elem, parentScope, name);
             elem.QEScope = scope;
             nextParentScope = scope;
-            var attrs = Array.prototype.slice.call(elem.attributes);
+            var attrs = Array.prototype.slice.call(elem.attributes).map(function (a) { return { name: a.name, value: a.value }; });
             for (var i = 0; i < attrs.length; i++) {
                 var attr = attrs[i];
                 if (/^qe::/.test(attr.name)) {
                     var prop = unKebab(attr.name.substr(4));
                     scope.set(prop, attr.value);
                 } else if (/^qe:/.test(attr.name)) {
-                    var actualAttr = attr.name.substr(3);
-                    if (/^qe:/.test(actualAttr)) {
-                        throw "I'm sorry Dave, I'm afraid I can't do that."; // technically it works, but I don't see how it would ever be a good idea
-                    }
-                    Expression(attr.value, scope, function (val) {
-                        
-                        if (actualAttr === "class" && typeof val !== "string") {
-                            if (typeof(val) === "object") {
-                                for (var cls in val) if (val.hasOwnProperty(cls)) {
-                                    if (val[cls]) {
-                                        elem.classList.add(cls);
-                                    } else {
-                                        elem.classList.remove(cls);
-                                    }
-                                }
-                            }
-                        } else if (val === false || val === null || val === undefined) {
-                            elem.removeAttribute(actualAttr);
-                        } else {
-                            if (EDGE && actualAttr === "style") {
-                                // Under some conditions, setting the style attribute crashes Edge
-                                // (it happens consistently in the "$value for text inputs..." test).
-                                // It appears that there's some sort of initialization race, because
-                                // just *accessing* them element's style property before setting the
-                                // atribute fixes things.
-                                elem.style;
-                            }
-                            elem.setAttribute(actualAttr, "" + val);
-                        }
-                    });
+                    expressionAttribute(scope, elem, attr);
                 } else if (attr.name === "qe-tunnel") {
                     var tunnelexprs = attr.value.split(";");
                     for (var j = 0; j < tunnelexprs.length; j++) {
                         var te = tunnelexprs[j].trim();
                         if (/^@/.test(te)) {
-                            var tunnel;
-                            Expression(te.substr(1), scope, function (val) {
-                                if (tunnel) {
-                                    tunnel.destroy();
-                                }
-                                if (val) {
-                                    tunnel = Tunnel(scope, val, function () { tunnel = null; });
-                                }
-                            });
+                            indirectTunnel(te.substr(1), scope);
                         } else {
                             Tunnel(scope, tunnelexprs[j]);                     
                         }
@@ -182,6 +203,50 @@
         for (var i = 0; i < elem.children.length; i++) {
             buildScopes(elem.children[i], nextParentScope);
         }
+    }
+
+    function indirectTunnel(expr, scope) {
+        var tunnel;
+        Expression(expr, scope, function (val) {
+            if (tunnel) {
+                tunnel.destroy();
+            }
+            if (val) {
+                tunnel = Tunnel(scope, val, function () { tunnel = null; });
+            }
+        });
+    }
+    
+    function expressionAttribute(scope, elem, attr) {
+        var actualAttr = attr.name.substr(3);
+        if (/^qe:/.test(actualAttr)) {
+            throw "I'm sorry Dave, I'm afraid I can't do that."; // technically it works, but I don't see how it would ever be a good idea
+        }
+        Expression(attr.value, scope, function (val) {
+            if (actualAttr === "class" && typeof val !== "string") {
+                if (typeof(val) === "object") {
+                    for (var cls in val) if (val.hasOwnProperty(cls)) {
+                        if (val[cls]) {
+                            elem.classList.add(cls);
+                        } else {
+                            elem.classList.remove(cls);
+                        }
+                    }
+                }
+            } else if (val === false || val === null || val === undefined) {
+                elem.removeAttribute(actualAttr);
+            } else {
+                if (EDGE && actualAttr === "style") {
+                    // Under some conditions, setting the style attribute crashes Edge
+                    // (it happens consistently in the "$value for text inputs..." test).
+                    // It appears that there's some sort of initialization race, because
+                    // just *accessing* them element's style property before setting the
+                    // atribute fixes things.
+                    elem.style;
+                }
+                elem.setAttribute(actualAttr, "" + val);
+            }
+        });
     }
     
     function Tunnel(scope, definition, onDestroy) {

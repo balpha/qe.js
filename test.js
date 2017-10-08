@@ -345,7 +345,6 @@
             var cb = tools.qs("input");
             var ok = tools.attrIs("div", "x", "hello");
             cb.checked = true;
-            var cur = tools.qs("div").getAttribute("x");
             ok = ok && tools.attrIs("div", "x", "goodbye");
             cb.checked = false;
             ok = ok && tools.attrIs("div", "x", "hello");
@@ -364,8 +363,23 @@
             document.getElementById("failure").addEventListener("click", function () { done(false); });
         },
         manual: true
-    });    
-        
+    });
+    TEST({
+        name: "$$attributes",
+        body: [
+            '<body qe qe:x="$$attributes.y" qe:y="input.$value">',
+            '<input value="xyz" qe qe-tunnel="$$self into $$parent.input">',
+            '</body>'].join(""),
+        run: function (done) {
+            setTimeout(function () {
+                var ok = tools.attrIs("body", "x", "xyz");
+                tools.qs("input").value="abc";
+                setTimeout(function () {
+                    done(ok && tools.attrIs("body", "x" ,"abc"));
+                }, 0);
+            }, 0);
+        }
+    });        
     window.QETest = QETest;
     window.QETestResult = QETestResult;
 })();

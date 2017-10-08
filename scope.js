@@ -103,8 +103,9 @@
                         });
                         that._data[name] = val.getCurrentValue();
                     }
-                    that.notifyAccessed(name);
-                    return that._data[name];
+                    var result = that._data[name];
+                    that.notifyAccessed(name, (result._id && scopes[result._id] &&scopes[result._id]._publicScope === result) ? getPrivateScopeFor(result) : null);
+                    return result;
                 }
             });
            
@@ -253,13 +254,13 @@
         return accessStack.pop();
     }
     
-    ScopePrivate.prototype.notifyAccessed = function(name) {
+    ScopePrivate.prototype.notifyAccessed = function(name, valueIsScope) {
         if (this._tearingDown)
             return;
         
         //console.log(name, "accessed in", this);
         if (accessStack.length) {
-            accessStack[accessStack.length - 1].push([this, name]);
+            accessStack[accessStack.length - 1].push([this, name, valueIsScope]);
         }
     };
     
@@ -361,9 +362,17 @@
                 dep[0].off(dep[1], onChange);
             }
             myDependencies = newDependencies;
+            var scopeValued = [];
             if (myDependencies) for (var i = 0; i < myDependencies.length; i++) {
                 var dep = myDependencies[i];
                 dep[0].on(dep[1], onChange);
+                if (dep[2]) {
+                    scopeValued.push([dep[2], null]);
+                    dep[2].on(null, onChange);
+                }
+            }
+            if (scopeValued.length) {
+                myDependencies = myDependencies.concat(scopeValued);
             }
             if (initial || value !== newValue) {
                 callback(newValue);
