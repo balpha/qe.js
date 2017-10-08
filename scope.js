@@ -118,7 +118,7 @@
             }
         }
         this._data[name] = val;
-        this.notifyChanged(name, delayed === "create" ? val.getCurrentValue : val, oldVal, delayed === "create");
+        this.notifyChanged(name);
         if (shadowing) {
             this.notifyShadowing(name);
         }
@@ -142,7 +142,7 @@
         }
     };
     
-    ScopePrivate.prototype.notifyChanged = function(name, newVal, oldVal, newValIsGetter) {
+    ScopePrivate.prototype.notifyChanged = function(name) {
         //console.log(name,"in",this,"changed from",oldVal,"to",newVal);
         
         if (this._tearingDown)
@@ -150,12 +150,9 @@
         
         var deps = this._dependents[name];
         if (deps) {
-            if (newValIsGetter) {
-                newVal = newVal();
-            }
             deps = deps.slice();
             for (var i = 0; i < deps.length; i++) {
-                deps[i](this, name, newVal, oldVal);
+                deps[i](name);
             }
         }
         
@@ -170,7 +167,7 @@
         if (deps) {
             deps = deps.slice();
             for (var i = 0; i < deps.length; i++) {
-                deps[i](this);
+                deps[i]();
             }
         }
         for (var i = 0; i < this._children.length; i++) {
@@ -232,7 +229,7 @@
             var val = data[key];
             var deps = this._dependents[key];
             for (var i = 0; i < deps.length; i++) {
-                deps[i](this, key, undefined, val);
+                deps[i](key);
             }
         }
         this._dependents = null;
@@ -286,8 +283,7 @@
     };
         
     ScopePrivate.prototype.beingShadowed = function (name) {
-        var val = this._publicScope[name]; // this._data[name];
-        this.notifyChanged(name, val, val);
+        this.notifyChanged(name);
     };    
     
     function getPrivateScopeFor(publicScope) {
