@@ -186,7 +186,10 @@
         if (!deps) {
             deps = this._dependents[name] = [];
         }
-        deps.push(cb);
+        if (deps.indexOf(cb) < 0) {
+            deps.push(cb);
+        }
+        
     };
     ScopePrivate.prototype.off = function (name, cb) {
         if (this._tearingDown)
