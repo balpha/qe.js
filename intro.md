@@ -99,7 +99,7 @@ Let's assume the `<div>`'s scope has a property `childHasFocus`. We can then giv
 </div>
 ```
 
-An attribute expression (inspired by [Vue's `v-bind` directive](https://vuejs.org/v2/api/#v-bind)) is defined by any attribute that starts with `qe:`, e.g. `qe:disabled` or `qe:aria-activedescendent`. Whatever the expression evaluates to will be the value of the `disabled` or `aria-activedescendent` attribute. Usually it will be a string, but there is special handling for `qe:class` and `qe:style` that allow the expression to evaluate to an object, which makes the `focus-within` example above work.
+An attribute expression (inspired by [Vue's `v-bind` directive](https://vuejs.org/v2/api/#v-bind)) is defined by any attribute that starts with `qe:`, e.g. `qe:disabled` or `qe:aria-activedescendant`. Whatever the expression evaluates to will be the value of the `disabled` or `aria-activedescendant` attribute. Usually it will be a string, but there is special handling for `qe:class` and `qe:style` that allow the expression to evaluate to an object, which makes the `focus-within` example above work.
 
 Now of course it doesn't work *yet*, because the `<div>`'s scope doesn't *have* a `childHasFocus` property yet.
 
@@ -121,7 +121,7 @@ Alright, so let's create a tunnel by giving the `<input>` element a `qe-tunnel` 
 </div>
 ```
 
-The `qe-tunnel` attribute can contain one or more tunnel expressions, separated by commas, each of which has the form <code>*expression* **into** *target.property* **if** *condition*</code>, and the `if condition` part is optional.
+The `qe-tunnel` attribute can contain one or more tunnel expressions, separated by semicolons, each of which has the form <code>*expression* **into** *target.property* **if** *condition*</code>, and the `if condition` part is optional.
 
 So, what do we have to do next?
 
@@ -235,7 +235,7 @@ Property attributes are particularly useful when combined with indirect tunnels,
 Often you will have multiple child elements that all tunnel the same expression into a parent scope, based on some state:
 
 ```html
-<ul qe="list" qe:aria-activedescendent="selectedItemId">
+<ul qe="list" qe:aria-activedescendant="selectedItemId">
 	<li qe id="item-1">
 		<input qe type="radio" name="selection"
 			qe-tunnel="$parent.$attributes.id into list.selectedItemId if $value">
@@ -257,7 +257,7 @@ Often you will have multiple child elements that all tunnel the same expression 
 You can get rid of this repetitiveness by using an **"indirect tunnel expression"**
 
 ```html
-<ul qe="list" qe:aria-activedescendent="selectedItemId"
+<ul qe="list" qe:aria-activedescendant="selectedItemId"
 		qe.id-tunnel="$parent.$attributes.id into list.selectedItemId if $value">
 	
 	<li qe id="item-1">
