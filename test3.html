@@ -38,7 +38,7 @@
         <p qe qe:style="$hover && input.$focus ? 'font-weight: bold' : false">Hello world.</p>
         <p qe qe:style="($hover ? 'font-style:italic;' : '') + (input.$focus ? 'font-weight: bold' : '')">Hello world again.</p>
         <input type="text" qe qe-tunnel="$$self into body.input">
-        <div qe="group" qe:hovered="hoveredElementId" qe::idtunnel="$$attributes.id into group.hoveredElementId if $hover">
+        <div qe="group" qe:hovered="hoveredElementId" qe.idtunnel="$$attributes.id into group.hoveredElementId if $hover">
             <div qe qe-tunnel="@idtunnel" id="element1">Element 1</div>
             <div qe qe-tunnel="@idtunnel" id="element2">Element 2</div>
             <div qe qe-tunnel="@idtunnel" id="element3">Element 3</div>

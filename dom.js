@@ -219,7 +219,7 @@
     
     function expressionAttribute(scope, elem, attr) {
         var actualAttr = attr.name.substr(3);
-        if (/^qe:/.test(actualAttr)) {
+        if (/^qe(?:\.|:|$)/.test(actualAttr)) {
             throw "I'm sorry Dave, I'm afraid I can't do that."; // technically it works, but I don't see how it would ever be a good idea
         }
         Expression(attr.value, scope, function (val) {

@@ -354,8 +354,9 @@
     TEST({
         name: "$hover, manual",
         body: [
-            '<body><div qe style="width: 100px; height: 100px; background: #ccc;"> Hover me<br>',
-            '<span qe qe:style="!$$parent.$hover ? \'display:none\' : false">Thanks!</button></div>',
+            '<body><style>.hide {display:none}</style>',
+            '<div qe style="width: 100px; height: 100px; background: #ccc;"> Hover me<br>',
+            '<span qe class="hide" qe:style="$$parent.$hover ? \'display:inline\' : false">Thanks!</button></div>',
             '<br><button id="success">works great</button> <button id="failure">not so much</button>',
             '</body>'].join(""),
         run: function (done) {
