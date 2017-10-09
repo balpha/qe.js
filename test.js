@@ -380,7 +380,19 @@
                 }, 0);
             }, 0);
         }
-    });        
+    });
+    TEST({
+        name: "style",
+        body: [
+            '<body qe qe:style="{\'padding-top\': \'47px\'}">',
+            '</body>'].join(""),
+        run: function (done) {
+            setTimeout(function () {
+                var ok = getComputedStyle(document.body).paddingTop === "47px";
+                done(ok);
+            }, 0);
+        }
+    });    
     window.QETest = QETest;
     window.QETestResult = QETestResult;
 })();

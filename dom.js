@@ -223,7 +223,9 @@
             throw "I'm sorry Dave, I'm afraid I can't do that."; // technically it works, but I don't see how it would ever be a good idea
         }
         Expression(attr.value, scope, function (val) {
-            if (actualAttr === "class" && typeof val !== "string") {
+            if (val === false) {
+                elem.removeAttribute(actualAttr);
+            } else if (actualAttr === "class" && typeof val !== "string") {
                 if (typeof(val) === "object") {
                     for (var cls in val) if (val.hasOwnProperty(cls)) {
                         if (val[cls]) {
@@ -233,7 +235,13 @@
                         }
                     }
                 }
-            } else if (val === false || val === null || val === undefined) {
+            } else if (actualAttr === "style" && typeof val !== "string") {
+                if (typeof(val) === "object") {
+                    for (var prop in val) if (val.hasOwnProperty(prop)) {
+                        elem.style[unKebab(prop)] = val[prop];
+                    }
+                }
+            } else if (val === null || val === undefined) { // for class and style, you must use false
                 elem.removeAttribute(actualAttr);
             } else {
                 if (EDGE && actualAttr === "style") {

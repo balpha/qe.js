@@ -33,7 +33,7 @@
             }
         </style>
     </head>
-    <body qe="body" qe:style='mouseOverDiv ? "background:yellow" : false'>
+    <body qe="body" qe:style='{background: mouseOverDiv ? "yellow" : "none" }'>
         <div id="foo" qe qe:class='{wide: $hover, toggled: toggle&&!$hover}' qe-tunnel="$hover into $parent.mouseOverDiv"></div>
         <p qe qe:style="$hover && input.$focus ? 'font-weight: bold' : false">Hello world.</p>
         <p qe qe:style="($hover ? 'font-style:italic;' : '') + (input.$focus ? 'font-weight: bold' : '')">Hello world again.</p>
