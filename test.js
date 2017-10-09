@@ -180,10 +180,10 @@
     
     TEST({
         name: "conditional tunnel and $value for radios, programmatic",
-        body: ['<body><div qe qe:selected-child="selected.$$element.getAttribute(\'value\')">',
-               '<input type="radio" name="radiogroup" value="1" qe qe-tunnel="$$self into $$parent.selected if $value">',
-               '<input type="radio" name="radiogroup" value="2" qe qe-tunnel="$$self into $$parent.selected if $value">',
-               '<input type="radio" name="radiogroup" value="3" qe qe-tunnel="$$self into $$parent.selected if $value">',
+        body: ['<body><div qe qe:selected-child="selected.$element.getAttribute(\'value\')">',
+               '<input type="radio" name="radiogroup" value="1" qe qe-tunnel="$self into $parent.selected if $value">',
+               '<input type="radio" name="radiogroup" value="2" qe qe-tunnel="$self into $parent.selected if $value">',
+               '<input type="radio" name="radiogroup" value="3" qe qe-tunnel="$self into $parent.selected if $value">',
                '</div></body>'].join(""),
         run: function (done) {
             var ok = tools.attrIsEmpty("div", "selected-child");
@@ -206,10 +206,10 @@
 
     TEST({
         name: "conditional tunnel and $value for radios, manual",
-        body: ['<body><div qe qe:selected-child="selected.$$element.getAttribute(\'value\')">',
-               '<label><input type="radio" name="radiogroup" value="1" qe qe-tunnel="$$self into $$parent.selected if $value"> Option 1</label><br>',
-               '<label><input type="radio" name="radiogroup" value="2" qe qe-tunnel="$$self into $$parent.selected if $value"> Option 2</label><br>',
-               '<label><input type="radio" name="radiogroup" value="3" qe qe-tunnel="$$self into $$parent.selected if $value"> Option 3</label><br>',
+        body: ['<body><div qe qe:selected-child="selected.$element.getAttribute(\'value\')">',
+               '<label><input type="radio" name="radiogroup" value="1" qe qe-tunnel="$self into $parent.selected if $value"> Option 1</label><br>',
+               '<label><input type="radio" name="radiogroup" value="2" qe qe-tunnel="$self into $parent.selected if $value"> Option 2</label><br>',
+               '<label><input type="radio" name="radiogroup" value="3" qe qe-tunnel="$self into $parent.selected if $value"> Option 3</label><br>',
                '</div><style>div::after{content: "Selected option: " attr(selected-child);}</style></after>',
                '<br><button id="success">works great</button> <button id="failure">not so much</button>',
                '</body>'].join(""),
@@ -221,10 +221,10 @@
     });
     // 
     TEST({
-        name: "$value for text inputs and $$global, manual",
+        name: "$value for text inputs and $global, manual",
         body: ['<body><div qe qe:style="\'width:50px;height:50px;\'+ (color ? \'background-color:\' + color : \'\')"></div>',
                'Type a CSS color here, and also try the "random" button:<br>',
-               '<input qe qe-tunnel="$value into $$global.color">',
+               '<input qe qe-tunnel="$value into $global.color">',
                ' <button id="random-color">random</button>',
                '<br><button id="success">works great</button> <button id="failure">not so much</button>',
                '</body>'].join(""),
@@ -242,9 +242,9 @@
     TEST({
         name: "previously missing properties are still dependencies; $value for checkboxes",
         body: ['<body><div class="form-container" qe qe:class="{\'focus-inside\': inputHasFocus }">',
-                '<input id="one" type="text" qe qe-tunnel="$focus into $$parent.inputHasFocus if $$parent.useFirst"><br>',
-                '<input id="two" type="text" qe qe-tunnel="$focus into $$parent.inputHasFocus if !$$parent.useFirst"><br>',
-                '<label><input id="cb" type="checkbox" qe qe-tunnel="$value into $$parent.useFirst">Use the first input to control the focus-inside style</label>',
+                '<input id="one" type="text" qe qe-tunnel="$focus into $parent.inputHasFocus if $parent.useFirst"><br>',
+                '<input id="two" type="text" qe qe-tunnel="$focus into $parent.inputHasFocus if !$parent.useFirst"><br>',
+                '<label><input id="cb" type="checkbox" qe qe-tunnel="$value into $parent.useFirst">Use the first input to control the focus-inside style</label>',
                 '</div></body>'].join(""),
         run: function (done) {
             var ok = !tools.qs(".form-container").classList.contains("focus-inside");
@@ -281,7 +281,7 @@
     TEST({
         name: "scope constants and indirect tunnels",
         body: [
-            '<body><div qe="outer" qe.t-selected="$$parent.$$element.id into outer.selected if $value" qe:aria-activedescendent="selected">',
+            '<body><div qe="outer" qe.t-selected="$parent.$element.id into outer.selected if $value" qe:aria-activedescendent="selected">',
             '<ul>',
             '<li qe id="item-1"><input type="radio" name="group" qe qe-tunnel="@tSelected"></li>',
             '<li qe id="item-2"><input type="radio" name="group" qe qe-tunnel="@tSelected"></li>',
@@ -313,8 +313,8 @@
         name: "correct value when returning from multiple tunnels into one property back to a single one",
         body: [
             '<body><div qe qe:x="x">',
-            '<input id="one" type="checkbox" qe qe-tunnel="1 into $$parent.x if $value">',
-            '<input id="two" type="checkbox" qe qe-tunnel="2 into $$parent.x if $value">',
+            '<input id="one" type="checkbox" qe qe-tunnel="1 into $parent.x if $value">',
+            '<input id="two" type="checkbox" qe qe-tunnel="2 into $parent.x if $value">',
             '</div>',
             '</body>'
         ].join(""),
@@ -337,7 +337,7 @@
         name: "correct value when a tunnel used to exit in an attribute constant",
         body: [
             '<body><div qe qe:x="x" qe.x="hello">',
-            '<input type="checkbox" qe qe-tunnel="\'goodbye\' into $$parent.x if $value">',
+            '<input type="checkbox" qe qe-tunnel="\'goodbye\' into $parent.x if $value">',
             '</div>',
             '</body>'
         ].join(""),
@@ -356,7 +356,7 @@
         body: [
             '<body><style>.hide {display:none}</style>',
             '<div qe style="width: 100px; height: 100px; background: #ccc;"> Hover me<br>',
-            '<span qe class="hide" qe:style="$$parent.$hover ? \'display:inline\' : false">Thanks!</button></div>',
+            '<span qe class="hide" qe:style="$parent.$hover ? \'display:inline\' : false">Thanks!</button></div>',
             '<br><button id="success">works great</button> <button id="failure">not so much</button>',
             '</body>'].join(""),
         run: function (done) {
@@ -366,10 +366,10 @@
         manual: true
     });
     TEST({
-        name: "$$attributes",
+        name: "$attributes",
         body: [
-            '<body qe qe:x="$$attributes.y" qe:y="input.$value">',
-            '<input value="xyz" qe qe-tunnel="$$self into $$parent.input">',
+            '<body qe qe:x="$attributes.y" qe:y="input.$value">',
+            '<input value="xyz" qe qe-tunnel="$self into $parent.input">',
             '</body>'].join(""),
         run: function (done) {
             setTimeout(function () {

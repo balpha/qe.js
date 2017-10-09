@@ -58,8 +58,8 @@
                 getCurrentValue: getCurrentValue
             }, "create");
         };
-        this._publicScope.set("$$self", this._publicScope);
-        this._publicScope.set("$$parent", Object.getPrototypeOf(this._publicScope));
+        this._publicScope.set("$self", this._publicScope);
+        this._publicScope.set("$parent", Object.getPrototypeOf(this._publicScope));
         if (parent && parent._name) {
             this._publicScope.set(parent._name, Object.getPrototypeOf(this._publicScope));
         }

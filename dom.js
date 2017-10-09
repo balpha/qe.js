@@ -7,7 +7,7 @@
         if (globalScope)
             globalScope.tearDown();
         globalScope = Scope();
-        globalScope.set("$$global", globalScope);
+        globalScope.set("$global", globalScope);
         buildScopes(document.body, globalScope);
     }
     
@@ -149,7 +149,7 @@
             return attrs;
         };
         
-        scope.createDelayed("$$attributes", attach, detach, getCurrentValue);
+        scope.createDelayed("$attributes", attach, detach, getCurrentValue);
         
     }
     
@@ -160,7 +160,7 @@
         addFocus(elem, scope);
         addValue(elem, scope);
         addAttributes(elem, scope);
-        scope.set("$$element", elem);
+        scope.set("$element", elem);
         
         return scope;
     }
@@ -268,7 +268,7 @@
         if (lastDot !== -1) {
             tunnelExitScopeExpr = tunnelExit.substr(0, lastDot);
         } else {
-            tunnelExitScopeExpr = "$$self"; 
+            tunnelExitScopeExpr = "$self"; 
         }
         tunnelExitProperty = tunnelExit.substr(lastDot + 1);
         var tunnelEntrance = parts[0];
