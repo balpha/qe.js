@@ -151,7 +151,7 @@ The scope of any entangled element has a couple of built-in properties:
 `$attributes`
 : allows you access the HTML element's attributes. For example, `$element.getAttribute("id")` and `$attributes.id` are *almost* equivalent -- however, if the `id` attribute changes at any time, QE has to reevalute any expressions that refer to this attribute. When you use the any non-QE method to get a value, like the element's `getAttribute` method, then QE doesn't know that the expression depends on the attribute. If you use `$attributes.id` instead, QE knows to re-evalute the expression when the `id` attribute changes.
 
-: If the attribute contains a dash ("kebab case"), you can refer to it by its original name or by its camel case conversion. So `$attributes["aria-role"]` and `$attributes.ariaRole` are equivalent.
+: If the attribute contains a dash ("kebab case"), you can refer to it by its original name or by its camel case conversion. So `$attributes["aria-label"]` and `$attributes.ariaLabel` are equivalent.
 
 `$global`
 : is the ancestor scope of all element scopes.
