@@ -181,8 +181,8 @@
             var attrs = Array.prototype.slice.call(elem.attributes).map(function (a) { return { name: a.name, value: a.value }; });
             for (var i = 0; i < attrs.length; i++) {
                 var attr = attrs[i];
-                if (/^qe::/.test(attr.name)) {
-                    var prop = unKebab(attr.name.substr(4));
+                if (/^qe\./.test(attr.name)) {
+                    var prop = unKebab(attr.name.substr(3));
                     scope.set(prop, attr.value);
                 } else if (/^qe:/.test(attr.name)) {
                     expressionAttribute(scope, elem, attr);

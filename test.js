@@ -281,7 +281,7 @@
     TEST({
         name: "scope constants and indirect tunnels",
         body: [
-            '<body><div qe="outer" qe::t-selected="$$parent.$$element.id into outer.selected if $value" qe:aria-activedescendent="selected">',
+            '<body><div qe="outer" qe.t-selected="$$parent.$$element.id into outer.selected if $value" qe:aria-activedescendent="selected">',
             '<ul>',
             '<li qe id="item-1"><input type="radio" name="group" qe qe-tunnel="@tSelected"></li>',
             '<li qe id="item-2"><input type="radio" name="group" qe qe-tunnel="@tSelected"></li>',
@@ -336,7 +336,7 @@
     TEST({
         name: "correct value when a tunnel used to exit in an attribute constant",
         body: [
-            '<body><div qe qe:x="x" qe::x="hello">',
+            '<body><div qe qe:x="x" qe.x="hello">',
             '<input type="checkbox" qe qe-tunnel="\'goodbye\' into $$parent.x if $value">',
             '</div>',
             '</body>'
