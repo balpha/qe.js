@@ -57,7 +57,7 @@ var QE;
                         var group = document.getElementsByName(groupName);
                         for (var i = 0; i < group.length; i++) {
                             var other = group[i];
-                            if (other !== elem && other instanceof HTMLInputElement && other.type === "radio" && other.hasAttribute("qe") && other.QEScope.$value !== other.checked) {
+                            if (other !== elem && other instanceof HTMLInputElement && other.type === "radio" && other.hasAttribute("qe")) {
                                 triggerModifiedEvent(other);
                             }
                         }
@@ -159,7 +159,6 @@ var QE;
         if (elem.hasAttribute("qe")) {
             var name = elem.getAttribute("qe") || null;
             var scope = domScope(elem, parentScope, name);
-            elem.QEScope = scope;
             nextParentScope = scope;
             var attrs = Array.prototype.slice.call(elem.attributes).map(function (a) { return { name: a.name, value: a.value }; });
             for (var i = 0; i < attrs.length; i++) {

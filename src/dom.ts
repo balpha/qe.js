@@ -19,7 +19,7 @@ namespace QE {
         addToggle(elem, scope, "$focus", "*:focus", "focus", "blur");
     }
     
-    function addToggle(elem: HTMLElement, scope: IPublicScope, prop: string, selector: string, trueEvent: string, falseEvent:string) {
+    function addToggle(elem: HTMLElement, scope: IPublicScope, prop: string, selector: string, trueEvent: string, falseEvent: string) {
         var onTrue: () => void, onFalse: () => void;
         
         var attach = function (setter: ISetter<boolean>) {
@@ -65,7 +65,7 @@ namespace QE {
                         var group = document.getElementsByName(groupName);
                         for (var i = 0; i < group.length; i++) {
                             var other = group[i];
-                            if (other !== elem && other instanceof HTMLInputElement && other.type === "radio" && other.hasAttribute("qe") && (other as any).QEScope.$value !== other.checked) {
+                            if (other !== elem && other instanceof HTMLInputElement && other.type === "radio" && other.hasAttribute("qe")) {
                                 triggerModifiedEvent(other); // FIXME: move this stuff to the setter wrapper?
                             }
                         }
@@ -181,7 +181,6 @@ namespace QE {
         if (elem.hasAttribute("qe")) {
             var name = elem.getAttribute("qe") || null;
             var scope = domScope(elem, parentScope, name);
-            (elem as any).QEScope = scope;
             nextParentScope = scope;
             var attrs = Array.prototype.slice.call(elem.attributes).map(function (a: Attr) { return { name: a.name, value: a.value }; });
             for (var i = 0; i < attrs.length; i++) {
