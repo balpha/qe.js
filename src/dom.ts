@@ -40,7 +40,7 @@ namespace QE {
         var getCurrentValue = function () {
             var found = elem.parentElement.querySelectorAll(selector);
             //console.log(selector, found);
-            for (var i = 0; i < found.length; i++) {
+            for (let i = 0; i < found.length; i++) {
                 if (found[i] === elem) {
                     return true;
                 }
@@ -64,9 +64,9 @@ namespace QE {
                 if (curVal && elem.type === "radio") {
                     var groupName = elem.name;
                     if (groupName) {
-                        var group = document.getElementsByName(groupName);
-                        for (var i = 0; i < group.length; i++) {
-                            var other = group[i];
+                        let group = document.getElementsByName(groupName);
+                        for (let i = 0; i < group.length; i++) {
+                            let other = group[i];
                             if (other !== elem && other instanceof HTMLInputElement && other.type === "radio" && other.hasAttribute("qe")) {
                                 triggerModifiedEvent(other); // FIXME: move this stuff to the setter wrapper?
                             }
@@ -104,11 +104,11 @@ namespace QE {
         var attach = function (setter: ISetter<IPublicScope>) {
             getCurrentValue();
             mo = new MutationObserver(function (mrs) {
-                for (var i = 0; i < mrs.length; i++) {
-                    var an = mrs[i].attributeName;
-                    var ukan = unKebab(an);
+                for (let i = 0; i < mrs.length; i++) {
+                    let an = mrs[i].attributeName;
+                    let ukan = unKebab(an);
                     if (elem.hasAttribute(an)) {
-                        var val = elem.getAttribute(an);
+                        let val = elem.getAttribute(an);
                         attrs.set(an, val);
                         if (an !== ukan) {
                             attrs.set(ukan, an);
@@ -138,10 +138,10 @@ namespace QE {
             if (!attrs) {
                 attrs = Scope();
                 var attributes = elem.attributes;
-                for (var i = 0; i < attributes.length; i++) {
-                    var name = attributes[i].name;
-                    var ukname = unKebab(name);
-                    var value = attributes[i].value;
+                for (let i = 0; i < attributes.length; i++) {
+                    let name = attributes[i].name;
+                    let ukname = unKebab(name);
+                    let value = attributes[i].value;
                     
                     attrs.set(name, value);
                     if (name !== ukname) {
@@ -181,21 +181,21 @@ namespace QE {
     function buildScopes(elem: HTMLElement, parentScope: IPublicScope) {
         var nextParentScope = parentScope;
         if (elem.hasAttribute("qe")) {
-            var name = elem.getAttribute("qe") || null;
-            var scope = domScope(elem, parentScope, name);
+            let name = elem.getAttribute("qe") || null;
+            let scope = domScope(elem, parentScope, name);
             nextParentScope = scope;
-            var attrs = Array.prototype.slice.call(elem.attributes).map(function (a: Attr) { return { name: a.name, value: a.value }; });
-            for (var i = 0; i < attrs.length; i++) {
-                var attr = attrs[i];
+            let attrs = Array.prototype.slice.call(elem.attributes).map(function (a: Attr) { return { name: a.name, value: a.value }; });
+            for (let i = 0; i < attrs.length; i++) {
+                let attr = attrs[i];
                 if (/^qe\./.test(attr.name)) {
-                    var prop = unKebab(attr.name.substr(3));
+                    let prop = unKebab(attr.name.substr(3));
                     scope.set(prop, attr.value);
                 } else if (/^qe:/.test(attr.name)) {
                     expressionAttribute(scope, elem, attr);
                 } else if (attr.name === "qe-tunnel") {
-                    var tunnelexprs = attr.value.split(";");
-                    for (var j = 0; j < tunnelexprs.length; j++) {
-                        var te = tunnelexprs[j].trim();
+                    let tunnelexprs = attr.value.split(";");
+                    for (let j = 0; j < tunnelexprs.length; j++) {
+                        let te = tunnelexprs[j].trim();
                         if (/^@/.test(te)) {
                             indirectTunnel(te.substr(1), scope);
                         } else {
@@ -207,7 +207,7 @@ namespace QE {
             }
         }
         var children = Array.prototype.slice.call(elem.children);
-        for (var child of children) if (child instanceof HTMLElement) {
+        for (let child of children) if (child instanceof HTMLElement) {
             buildScopes(child, nextParentScope);
         }
     }
@@ -234,7 +234,7 @@ namespace QE {
                 elem.removeAttribute(actualAttr);
             } else if (actualAttr === "class" && typeof val !== "string") {
                 if (typeof(val) === "object") {
-                    for (var cls in val) if (val.hasOwnProperty(cls)) {
+                    for (let cls in val) if (val.hasOwnProperty(cls)) {
                         if ((val as IStringDict)[cls]) {
                             elem.classList.add(cls);
                         } else {
@@ -244,7 +244,7 @@ namespace QE {
                 }
             } else if (actualAttr === "style" && typeof val !== "string") {
                 if (typeof(val) === "object") {
-                    for (var prop in val) if (val.hasOwnProperty(prop)) {
+                    for (let prop in val) if (val.hasOwnProperty(prop)) {
                         elem.style.setProperty(kebab(prop), (val as IStringDict)[prop]);
                     }
                 }
@@ -332,7 +332,7 @@ namespace QE {
             }
             var oldExpressions = expressions;
             expressions = null;
-            for (var e of oldExpressions) {
+            for (let e of oldExpressions) {
                 e.destroy();
             }
             
@@ -347,8 +347,8 @@ namespace QE {
     }
     
     function anyNodeIsQe(nodeList: NodeList) {
-        for (var i = 0; i<nodeList.length; i++) {
-            var node = nodeList[i];
+        for (let i = 0; i<nodeList.length; i++) {
+            let node = nodeList[i];
             if (node.nodeType !== Node.ELEMENT_NODE)
                 continue;
             if (!(node instanceof HTMLElement))
@@ -362,10 +362,10 @@ namespace QE {
     }
     
     function triggerModifiedEvent(elem: HTMLElement) {
-            // FIXME: use the modern version, only fall back to the old IE-compatible way of creating events
-            var evt = document.createEvent("Event");
-            evt.initEvent(MODIFIED_EVENT, false, true); // don't bubble
-            elem.dispatchEvent(evt);        
+        // FIXME: use the modern version, only fall back to the old IE-compatible way of creating events
+        var evt = document.createEvent("Event");
+        evt.initEvent(MODIFIED_EVENT, false, true); // don't bubble
+        elem.dispatchEvent(evt);        
     }
     
     function triggerModifiedEventOnPropertyChange(nodeName: string, propertyName: string) {
@@ -403,7 +403,7 @@ namespace QE {
     
     function monkeypatchInputs() {
         var props = ["value", "checked", "defaultValue", "defaultChecked"];
-        for (var i = 0; i < props.length; i++) {
+        for (let i = 0; i < props.length; i++) {
             triggerModifiedEventOnPropertyChange("input", props[i]);
         }
         
@@ -411,8 +411,8 @@ namespace QE {
     
     export function init() {
         var mo = new MutationObserver(function (mrs) {
-            for (var i = 0; i < mrs.length; i++) {
-                var mr = mrs[i];
+            for (let i = 0; i < mrs.length; i++) {
+                let mr = mrs[i];
                 
                 if (mr.type === "attributes" && /^qe/.test(mr.attributeName) && mr.oldValue !== (mr.target as HTMLElement).getAttribute(mr.attributeName)) {
                     build();

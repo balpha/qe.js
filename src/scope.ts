@@ -90,7 +90,7 @@ namespace QE {
                     stack.length = 1;
                 }
                 if (typeof token !== "number") {
-                    for (var i = 1; i <= stack.length; i++) { // note  "1" and "<=", both intentional
+                    for (let i = 1; i <= stack.length; i++) { // note  "1" and "<=", both intentional
                         if (!(i in stack)) {
                             token = i;
                             break;
@@ -187,7 +187,7 @@ namespace QE {
             if (!stack)
                 return;
             var any = false;
-            for (var i = stack.length-1; i >= 0; i--) { // walk backwards -- non-defaults (i.e. tunnels) win
+            for (let i = stack.length-1; i >= 0; i--) { // walk backwards -- non-defaults (i.e. tunnels) win
                 if (i in stack) {
                     any = true;
                     this.set(name, stack[i]);
@@ -208,7 +208,7 @@ namespace QE {
             var deps = this._dependents[name];
             if (deps) {
                 deps = deps.slice();
-                for (var i = 0; i < deps.length; i++) {
+                for (let i = 0; i < deps.length; i++) {
                     deps[i]();
                 }
             }
@@ -223,11 +223,11 @@ namespace QE {
             var deps = this._dependents["$$anything"];
             if (deps) {
                 deps = deps.slice();
-                for (var i = 0; i < deps.length; i++) {
+                for (let i = 0; i < deps.length; i++) {
                     deps[i]();
                 }
             }
-            for (var i = 0; i < this._children.length; i++) {
+            for (let i = 0; i < this._children.length; i++) {
                 this._children[i].notifySomethingChanged();
             }   
         }
@@ -259,7 +259,7 @@ namespace QE {
         };
         tearingDown() {
             this._tearingDown = true;
-            for (var i = 0; i < this._children.length; i++) {
+            for (let i = 0; i < this._children.length; i++) {
                 this._children[i].tearingDown();
             }
         }
@@ -274,27 +274,27 @@ namespace QE {
             
             if (this._parent) {
                 Object.setPrototypeOf(this._publicScope, Object.prototype);
-                var parent = this._parent;
+                let parent = this._parent;
                 this._parent = null;
                 parent.childRemoved(this);
             }
             
             
             var children = this._children.slice();
-            for (var i = 0; i < children.length; i++) {
+            for (let i = 0; i < children.length; i++) {
                 children[i].tearDown();
             }
             
-            for (var key in this._dependents) if (this._dependents.hasOwnProperty(key)) {
-                var val = data[key];
-                var deps = this._dependents[key];
-                for (var i = 0; i < deps.length; i++) {
+            for (let key in this._dependents) if (this._dependents.hasOwnProperty(key)) {
+                let val = data[key];
+                let deps = this._dependents[key];
+                for (let i = 0; i < deps.length; i++) {
                     deps[i]();
                 }
             }
             this._dependents = null;
             
-            for (var key in this._delayedProps) if (this._delayedProps.hasOwnProperty(key)) {
+            for (let key in this._delayedProps) if (this._delayedProps.hasOwnProperty(key)) {
                 this._delayedProps[key].detach();
             }
             this._delayedProps = null;
@@ -368,10 +368,10 @@ namespace QE {
         var onChange = function () {
             //console.log("expression",exp,"has changed");
             if (scope._tearingDown || destroying) {
-                var deps = myDependencies;
+                let deps = myDependencies;
                 myDependencies = null;
-                if (deps) for (var i = 0; i < deps.length; i++) {
-                    var dep = deps[i];
+                if (deps) for (let i = 0; i < deps.length; i++) {
+                    let dep = deps[i];
                     dep[0].off(dep[1], onChange);
                 }
                 if (onDestroy)
@@ -421,14 +421,14 @@ namespace QE {
             if (threw||true) { // the dependency might not have been defined yet -- must watch for everything for now; with Proxy this can become smarter
                 newDependencies.push([scope, null]);                
             }
-            if (myDependencies) for (var i = 0; i < myDependencies.length; i++) {
-                var dep = myDependencies[i];
+            if (myDependencies) for (let i = 0; i < myDependencies.length; i++) {
+                let dep = myDependencies[i];
                 dep[0].off(dep[1], onChange);
             }
             myDependencies = newDependencies;
             var scopeValued: AccessRecord[] = [];
-            if (myDependencies) for (var i = 0; i < myDependencies.length; i++) {
-                var dep = myDependencies[i];
+            if (myDependencies) for (let i = 0; i < myDependencies.length; i++) {
+                let dep = myDependencies[i];
                 dep[0].on(dep[1], onChange);
                 if (dep[2]) {
                     scopeValued.push([dep[2] as ScopePrivate, null]);
