@@ -6,7 +6,7 @@
         "outFile": "../dist/qe.js"
     },
     "include": [
-        "dom.ts",
-        "scope.ts"
+        "scope.ts",
+        "dom.ts"
     ],
 }
