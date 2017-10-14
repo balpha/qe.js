@@ -1,12 +1,14 @@
 var QE;
 (function (QE) {
+    var Scope = QE.Scope;
+    var Expression = QE.Expression;
     var globalScope;
     var MODIFIED_EVENT = "qe:modified-programmatically";
     var EDGE = /Edge/.test(navigator.userAgent);
     function build() {
         if (globalScope)
             globalScope.tearDown();
-        globalScope = QE.Scope();
+        globalScope = Scope();
         globalScope.set("$global", globalScope);
         buildScopes(document.body, globalScope);
     }
@@ -121,7 +123,7 @@ var QE;
         };
         var getCurrentValue = function () {
             if (!attrs) {
-                attrs = QE.Scope();
+                attrs = Scope();
                 var attributes = elem.attributes;
                 for (var i = 0; i < attributes.length; i++) {
                     var name = attributes[i].name;
@@ -138,7 +140,7 @@ var QE;
         scope.createDelayed("$attributes", attach, detach, getCurrentValue);
     }
     function domScope(elem, parentScope, name) {
-        var scope = QE.Scope(parentScope, name);
+        var scope = Scope(parentScope, name);
         addHover(elem, scope);
         addFocus(elem, scope);
         if (elem instanceof HTMLInputElement) {
@@ -194,7 +196,7 @@ var QE;
     }
     function indirectTunnel(expr, scope) {
         var tunnel;
-        QE.Expression(expr, scope, function (val) {
+        Expression(expr, scope, function (val) {
             if (tunnel) {
                 tunnel.destroy();
             }
@@ -208,7 +210,7 @@ var QE;
         if (/^qe(?:\.|:|$)/.test(actualAttr)) {
             throw "I'm sorry Dave, I'm afraid I can't do that.";
         }
-        QE.Expression(attr.value, scope, function (val) {
+        Expression(attr.value, scope, function (val) {
             if (val === false) {
                 elem.removeAttribute(actualAttr);
             }
@@ -281,7 +283,7 @@ var QE;
                 }
             }
         };
-        expressions.push(QE.Expression(tunnelExitScopeExpr, scope, function (s) {
+        expressions.push(Expression(tunnelExitScopeExpr, scope, function (s) {
             if (tunnelActive && tunnelExitScope) {
                 tunnelActive = false;
                 doTunnel();
@@ -291,12 +293,12 @@ var QE;
             doTunnel();
         }, destroy));
         if (tunnelCondition) {
-            expressions.push(QE.Expression(tunnelCondition, scope, function (v) {
+            expressions.push(Expression(tunnelCondition, scope, function (v) {
                 tunnelActive = !!v;
                 doTunnel();
             }, destroy));
         }
-        expressions.push(QE.Expression(tunnelEntrance, scope, function (v) {
+        expressions.push(Expression(tunnelEntrance, scope, function (v) {
             tunnelValue = v;
             doTunnel();
         }, destroy));

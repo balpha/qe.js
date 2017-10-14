@@ -1,5 +1,7 @@
 namespace QE {
-
+    var Scope = QE.Scope;
+    var Expression = QE.Expression;
+    
     var globalScope: IPublicScope;
     var MODIFIED_EVENT = "qe:modified-programmatically";
     var EDGE = /Edge/.test(navigator.userAgent);
