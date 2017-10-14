@@ -1,5 +1,6 @@
-(function () {
-    var globalScope;
+namespace QE {
+
+    var globalScope: IPublicScope;
     var MODIFIED_EVENT = "qe:modified-programmatically";
     var EDGE = /Edge/.test(navigator.userAgent);
     
@@ -11,17 +12,17 @@
         buildScopes(document.body, globalScope);
     }
     
-    function addHover(elem, scope) {
+    function addHover(elem: HTMLElement, scope: IPublicScope) {
         addToggle(elem, scope, "$hover", "*:hover", "mouseenter", "mouseleave");
     }
-    function addFocus(elem, scope) {
+    function addFocus(elem: HTMLElement, scope: IPublicScope) {
         addToggle(elem, scope, "$focus", "*:focus", "focus", "blur");
     }
     
-    function addToggle(elem, scope, prop, selector, trueEvent, falseEvent) {
-        var onTrue, onFalse;
+    function addToggle(elem: HTMLElement, scope: IPublicScope, prop: string, selector: string, trueEvent: string, falseEvent:string) {
+        var onTrue: () => void, onFalse: () => void;
         
-        var attach = function (setter) {
+        var attach = function (setter: ISetter<boolean>) {
             onTrue = function () { setter(true); };
             onFalse = function () { setter(false); };
             elem.addEventListener(trueEvent, onTrue);
@@ -48,11 +49,11 @@
         scope.createDelayed(prop, attach, detach, getCurrentValue);
     }
 
-    function addValue(elem, scope) {
-        var onChange;
+    function addValue(elem: HTMLInputElement, scope: IPublicScope) {
+        var onChange: (e: Event) => void;
         
-        var attach = function (setter) {
-            onChange = function (evt) {
+        var attach = function (setter: ISetter<string | boolean>) {
+            onChange = function (evt: Event) {
                 if (evt.target !== this) {
                     return;
                 }
@@ -64,7 +65,7 @@
                         var group = document.getElementsByName(groupName);
                         for (var i = 0; i < group.length; i++) {
                             var other = group[i];
-                            if (other !== elem && other.type === "radio" && other.hasAttribute("qe") && other.QEScope.$value !== other.checked) {
+                            if (other !== elem && other instanceof HTMLInputElement && other.type === "radio" && other.hasAttribute("qe") && (other as any).QEScope.$value !== other.checked) {
                                 triggerModifiedEvent(other); // FIXME: move this stuff to the setter wrapper?
                             }
                         }
@@ -95,10 +96,10 @@
         scope.createDelayed("$value", attach, detach, getCurrenValue);
     }
     
-    function addAttributes(elem, scope) {
-        var mo;
-        var attrs;
-        var attach = function (setter) {
+    function addAttributes(elem: HTMLElement, scope: IPublicScope) {
+        var mo: MutationObserver;
+        var attrs: IPublicScope;
+        var attach = function (setter: ISetter<IPublicScope>) {
             getCurrentValue();
             mo = new MutationObserver(function (mrs) {
                 for (var i = 0; i < mrs.length; i++) {
@@ -153,32 +154,36 @@
         
     }
     
-    function domScope(elem, parentScope, name) {
+    function domScope(elem: HTMLElement, parentScope: IPublicScope, name?: string): IPublicScope {
         var scope = Scope(parentScope, name);
         
         addHover(elem, scope);
         addFocus(elem, scope);
-        addValue(elem, scope);
+        if (elem instanceof HTMLInputElement) {
+            addValue(elem, scope);
+        }
         addAttributes(elem, scope);
         scope.set("$element", elem);
         
         return scope;
     }
     
-    function unKebab(s) {
+    function unKebab(s: string): string {
         return s.replace(/-([a-z])/g, function (_, c) { return c.toUpperCase(); });
     }
+
+    function kebab(s: string): string {
+        return s.replace(/[A-Z]/g, function (c) { return "-" + c.toLowerCase(); });
+    }
     
-    function buildScopes(elem, parentScope) {
-        if (elem.nodeType != Node.ELEMENT_NODE)
-            return;
+    function buildScopes(elem: HTMLElement, parentScope: IPublicScope) {
         var nextParentScope = parentScope;
         if (elem.hasAttribute("qe")) {
             var name = elem.getAttribute("qe") || null;
             var scope = domScope(elem, parentScope, name);
-            elem.QEScope = scope;
+            (elem as any).QEScope = scope;
             nextParentScope = scope;
-            var attrs = Array.prototype.slice.call(elem.attributes).map(function (a) { return { name: a.name, value: a.value }; });
+            var attrs = Array.prototype.slice.call(elem.attributes).map(function (a: Attr) { return { name: a.name, value: a.value }; });
             for (var i = 0; i < attrs.length; i++) {
                 var attr = attrs[i];
                 if (/^qe\./.test(attr.name)) {
@@ -200,14 +205,15 @@
                 }
             }
         }
-        for (var i = 0; i < elem.children.length; i++) {
-            buildScopes(elem.children[i], nextParentScope);
+        var children = Array.prototype.slice.call(elem.children);
+        for (var child of children) if (child instanceof HTMLElement) {
+            buildScopes(child, nextParentScope);
         }
     }
 
-    function indirectTunnel(expr, scope) {
-        var tunnel;
-        Expression(expr, scope, function (val) {
+    function indirectTunnel(expr: string, scope: IPublicScope) {
+        var tunnel: IDestroyable;
+        Expression<string>(expr, scope, function (val) {
             if (tunnel) {
                 tunnel.destroy();
             }
@@ -217,7 +223,7 @@
         });
     }
     
-    function expressionAttribute(scope, elem, attr) {
+    function expressionAttribute(scope: IPublicScope, elem: HTMLElement, attr: Attr) {
         var actualAttr = attr.name.substr(3);
         if (/^qe(?:\.|:|$)/.test(actualAttr)) {
             throw "I'm sorry Dave, I'm afraid I can't do that."; // technically it works, but I don't see how it would ever be a good idea
@@ -228,7 +234,7 @@
             } else if (actualAttr === "class" && typeof val !== "string") {
                 if (typeof(val) === "object") {
                     for (var cls in val) if (val.hasOwnProperty(cls)) {
-                        if (val[cls]) {
+                        if ((val as IStringDict)[cls]) {
                             elem.classList.add(cls);
                         } else {
                             elem.classList.remove(cls);
@@ -238,7 +244,7 @@
             } else if (actualAttr === "style" && typeof val !== "string") {
                 if (typeof(val) === "object") {
                     for (var prop in val) if (val.hasOwnProperty(prop)) {
-                        elem.style[unKebab(prop)] = val[prop];
+                        elem.style.setProperty(kebab(prop), (val as IStringDict)[prop]);
                     }
                 }
             } else if (val === null || val === undefined) { // for class and style, you must use false
@@ -257,7 +263,7 @@
         });
     }
     
-    function Tunnel(scope, definition, onDestroy) {
+    function Tunnel<T>(scope: IPublicScope, definition: string, onDestroy?: () => void) {
         var parts = definition.split(" into ");
         if (parts.length != 2) {
             throw "invalid syntax in tunnel expression " + definition; 
@@ -267,12 +273,12 @@
         var exitAndCondition = parts[1].split(" if ");
         
         if (exitAndCondition.length > 2) {
-            throw "invalid syntax in tunnel expression " + attr.value; 
+            throw "invalid syntax in tunnel expression " + definition; 
         }
         
         var tunnelExit = exitAndCondition[0].trim();
         var lastDot = tunnelExit.lastIndexOf(".");
-        var tunnelExitScopeExpr, tunnelExitProperty;
+        var tunnelExitScopeExpr: string, tunnelExitProperty: string;
         if (lastDot !== -1) {
             tunnelExitScopeExpr = tunnelExit.substr(0, lastDot);
         } else {
@@ -282,11 +288,11 @@
         var tunnelEntrance = parts[0];
         var tunnelCondition = exitAndCondition[1];
         
-        var tunnelExitScope;
-        var tunnelValue;
+        var tunnelExitScope: IPublicScope;
+        var tunnelValue: T;
         var tunnelActive = !tunnelCondition;
-        var token;
-        var expressions = [];
+        var token: number;
+        var expressions: IDestroyable[] = [];
         var doTunnel = function () {
             if (tunnelExitScope) {
                 if (tunnelActive) {
@@ -297,7 +303,7 @@
                 }
             }
         };
-        expressions.push(Expression(tunnelExitScopeExpr, scope, function (s) {
+        expressions.push(Expression<IPublicScope>(tunnelExitScopeExpr, scope, function (s) {
             if (tunnelActive && tunnelExitScope) {
                 tunnelActive = false;
                 doTunnel();
@@ -314,27 +320,37 @@
             }, destroy));
         }
         
-        expressions.push(Expression(tunnelEntrance, scope, function (v) {
+        expressions.push(Expression<T>(tunnelEntrance, scope, function (v) {
             tunnelValue = v;
             doTunnel();
         }, destroy));
         
         function destroy() {
-            for (var i = 0; i < expressions.length; i++) {
-                expressions[i].destroy();
+            if (!expressions) { // already destroyed
+                return;
             }
+            var oldExpressions = expressions;
             expressions = null;
+            for (var e of oldExpressions) {
+                e.destroy();
+            }
+            
         }
         
-        return {
-            destroy: destroy
-        };
+        if (onDestroy) {
+            return {
+                destroy: destroy
+            };
+        }
+        
     }
     
-    function anyNodeIsQe(nodeList) {
+    function anyNodeIsQe(nodeList: NodeList) {
         for (var i = 0; i<nodeList.length; i++) {
             var node = nodeList[i];
             if (node.nodeType !== Node.ELEMENT_NODE)
+                continue;
+            if (!(node instanceof HTMLElement))
                 continue;
             if (node.hasAttribute("qe"))
                 return true;
@@ -344,14 +360,14 @@
         return false;
     }
     
-    function triggerModifiedEvent(elem) {
+    function triggerModifiedEvent(elem: HTMLElement) {
             // FIXME: use the modern version, only fall back to the old IE-compatible way of creating events
             var evt = document.createEvent("Event");
             evt.initEvent(MODIFIED_EVENT, false, true); // don't bubble
             elem.dispatchEvent(evt);        
     }
     
-    function triggerModifiedEventOnPropertyChange(nodeName, propertyName) {
+    function triggerModifiedEventOnPropertyChange(nodeName: string, propertyName: string) {
     
         var inp = document.createElement(nodeName);
     
@@ -392,12 +408,12 @@
         
     }
     
-    window.QE = function () {
+    export function init() {
         var mo = new MutationObserver(function (mrs) {
             for (var i = 0; i < mrs.length; i++) {
                 var mr = mrs[i];
                 
-                if (mr.type === "attributes" && /^qe/.test(mr.attributeName) && mr.oldValue !== mr.target.getAttribute(mr.attributeName)) {
+                if (mr.type === "attributes" && /^qe/.test(mr.attributeName) && mr.oldValue !== (mr.target as HTMLElement).getAttribute(mr.attributeName)) {
                     build();
                     return;
                 }
@@ -418,4 +434,4 @@
         monkeypatchInputs();
         build();
     }
-})();
+}

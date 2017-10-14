@@ -73,7 +73,7 @@
         var t1 = copy({}, t);
         t1.run = function (done) {
             document.body.outerHTML = t1.body;
-            QE();
+            QE.init();
             t.run(done);
         };
         t1.name = "[static] " + t1.name;
@@ -102,7 +102,7 @@
                 addAttr.push([body, body.getAttribute("qe")]);
                 body.removeAttribute("qe");
             }
-            QE();
+            QE.init();
             setTimeout(function () {
                 for (var i = 0; i < children.length; i++) {
                     document.body.appendChild(children[i]);

@@ -1,0 +1,12 @@
+{
+    "compilerOptions": {
+        "noImplicitAny": true,
+        "removeComments": true,
+        "target": "es5",
+        "outFile": "../dist/qe.js"
+    },
+    "include": [
+        "dom.ts",
+        "scope.ts"
+    ],
+}

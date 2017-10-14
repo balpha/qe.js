@@ -1,8 +1,7 @@
 <!DOCTYPE html>
 <html>
     <head>
-        <script src="scope.js"></script>
-        <script src="dom.js"></script>
+        <script src="../dist/qe.js"></script>
         <style>
             #foo {
                 width: 200px;
@@ -33,7 +32,7 @@
             }
         </style>
     </head>
-    <body qe="body" qe:style='{background: mouseOverDiv ? "yellow" : "none" }'>
+    <body qe="body" qe:style='{background: mouseOverDiv ? "yellow" : null }'>
         <div id="foo" qe qe:class='{wide: $hover, toggled: toggle&&!$hover}' qe-tunnel="$hover into $parent.mouseOverDiv"></div>
         <p qe qe:style="$hover && input.$focus ? 'font-weight: bold' : false">Hello world.</p>
         <p qe qe:style="($hover ? 'font-style:italic;' : '') + (input.$focus ? 'font-weight: bold' : '')">Hello world again.</p>
@@ -67,7 +66,7 @@
     </body>
     <script>
         document.addEventListener("DOMContentLoaded", function() {
-            QE();
+            QE.init();
             
             var foo = document.getElementById("foo");
             foo.QEScope.set("toggle", false);
