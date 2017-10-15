@@ -33,11 +33,11 @@
         </style>
     </head>
     <body qe="body" qe:style='{background: mouseOverDiv ? "yellow" : null }'>
-        <div id="foo" qe qe:class='{wide: $hover, toggled: toggle&&!$hover}' qe-tunnel="$hover into $parent.mouseOverDiv" qe.toggle=""></div>
+        <div id="foo" qe qe:class='{wide: $hover, toggled: $self.toggle&&!$hover}' qe-tunnel="$hover into $parent.mouseOverDiv"></div>
         <p qe qe:style="$hover && input.$focus ? 'font-weight: bold' : false">Hello world.</p>
         <p qe qe:style="($hover ? 'font-style:italic;' : '') + (input.$focus ? 'font-weight: bold' : '')">Hello world again.</p>
         <input type="text" qe qe-tunnel="$self into body.input">
-        <div qe="group" qe:hovered="hoveredElementId" qe.idtunnel="$attributes.id into group.hoveredElementId if $hover">
+        <div qe="group" qe:hovered="$self.hoveredElementId" qe.idtunnel="$attributes.id into group.hoveredElementId if $hover">
             <div qe qe-tunnel="@idtunnel" id="element1">Element 1</div>
             <div qe qe-tunnel="@idtunnel" id="element2">Element 2</div>
             <div qe qe-tunnel="@idtunnel" id="element3">Element 3</div>
@@ -51,10 +51,10 @@
         
         
         
-        <div class="form-container" qe qe:class="{'focus-inside': inputHasFocus }">
-            <input type="text" qe qe-tunnel="$focus into $parent.inputHasFocus if useFirst">
+        <div class="form-container" qe qe:class="{'focus-inside': $self.inputHasFocus }">
+            <input type="text" qe qe-tunnel="$focus into $parent.inputHasFocus if $self.useFirst">
             <br>
-            <input type="text" qe qe-tunnel="$focus into $parent.inputHasFocus if !useFirst">
+            <input type="text" qe qe-tunnel="$focus into $parent.inputHasFocus if !$self.useFirst">
             <br>
             <label>
                 <input type="checkbox" qe qe-tunnel="$value into $parent.useFirst">
@@ -70,8 +70,8 @@
             
             var foo = document.getElementById("foo");
             var interv = setInterval(function () {
-                if (foo.getAttribute("qe.toggle") === "yes")
-                    foo.setAttribute("qe.toggle", "");
+                if (foo.hasAttribute("qe.toggle"))
+                    foo.removeAttribute("qe.toggle");
                 else
                     foo.setAttribute("qe.toggle", "yes");
             }, 1000);

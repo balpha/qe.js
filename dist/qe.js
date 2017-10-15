@@ -258,7 +258,54 @@ var QE;
             return s;
         return null;
     }
+    var nextExpressionId = 1;
+    var exceptions = {};
+    var exceptionLogTimeout;
+    var exceptionLoggers = [];
+    var doLogExceptionsToConsole = true;
+    exceptionLoggers.push(function (expression, exception) {
+        if (doLogExceptionsToConsole && window.console && console.error) {
+            console.error("Expression `" + expression + "` threw " + exception.constructor.name + ": " + exception.message + ", treating as undefined\n", exception);
+        }
+    });
+    function logException(exception, expressionId, expression) {
+        exceptions[expressionId] = [expression, exception];
+        if (!exceptionLogTimeout) {
+            exceptionLogTimeout = setTimeout(outputLog, 0);
+        }
+    }
+    function noException(expressionId) {
+        delete exceptions[expressionId];
+    }
+    function outputLog() {
+        for (var i in exceptions)
+            if (exceptions.hasOwnProperty(i)) {
+                for (var _i = 0, exceptionLoggers_1 = exceptionLoggers; _i < exceptionLoggers_1.length; _i++) {
+                    var handler = exceptionLoggers_1[_i];
+                    handler.apply(null, exceptions[i]);
+                }
+            }
+        exceptions = {};
+        exceptionLogTimeout = null;
+    }
+    function onException(f) {
+        exceptionLoggers.push(f);
+    }
+    QE.onException = onException;
+    function logPendingExceptions() {
+        if (exceptionLogTimeout) {
+            clearTimeout(exceptionLogTimeout);
+            outputLog();
+        }
+    }
+    QE.logPendingExceptions = logPendingExceptions;
+    function logExceptionsToConsole(yesno) {
+        doLogExceptionsToConsole = yesno;
+    }
+    QE.logExceptionsToConsole = logExceptionsToConsole;
     function ExpressionPrivate(exp, scope, callback, onDestroy) {
+        var id = nextExpressionId;
+        nextExpressionId++;
         var func = new Function("scope", "with(scope){return " + exp + "}");
         var value;
         var destroying = false;
@@ -306,8 +353,12 @@ var QE;
                 newValue = func(scope._publicScope);
             }
             catch (ex) {
+                logException(ex, id, exp);
                 threw = true;
                 newValue = undefined;
+            }
+            if (!threw) {
+                noException(id);
             }
             var newDependencies = endRecordAccess();
             if (threw || true) {

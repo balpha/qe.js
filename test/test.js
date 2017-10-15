@@ -10,11 +10,14 @@
             nextTest();
         }
     }
-    function QETestResult(id, success) {
+    function QETestResult(id, success, exceptions) {
         var p = document.getElementById("result-" + id);
-        p.textContent = TESTS[id].name + ": " + (success ? "pass" : "fail");
+        p.textContent = TESTS[id].name + ": " + (success ? "pass" : "fail") + (exceptions > 0 ? " [" + exceptions + " exception(s)]" : "");
         p.classList.remove("pending");
         p.classList.add(success ? "pass" : "fail");
+        if (exceptions > 0) {
+            p.classList.add("exceptions");
+        }
         tools.qs("#iframeholder").removeChild(tools.qs("iframe"));
         nextTest();
     }
@@ -39,8 +42,8 @@
     
     function testCase(id) {
         var test = TESTS[id];
-        test.run(function (success) {
-            window.parent.QETestResult(id, success);
+        test.run(function (success, exceptions) {
+            window.parent.QETestResult(id, success, exceptions);
         });
     }
     
@@ -72,14 +75,20 @@
     function TEST(t){
         var t1 = copy({}, t);
         t1.run = function (done) {
+            var exceptionCount = 0;
+            QE.onException(function () { exceptionCount++; });
             document.body.outerHTML = t1.body;
             QE.init();
-            t.run(done);
+            t.run(function (success) {
+                QE.logPendingExceptions();
+                done(success, exceptionCount);
+            });
         };
         t1.name = "[static] " + t1.name;
         
         var t2 = copy({}, t);
         t2.run = function (done) {
+            QE.logExceptionsToConsole(false);
             var div = document.createElement("div");
             document.body.outerHTML = t1.body;
             var children = Array.prototype.slice.call(document.body.childNodes);
@@ -114,20 +123,26 @@
                             addAttr[i][0].setAttribute("qe", addAttr[i][1]);
                             added++;
                             if (added === addAttr.length) {
-                                setTimeout(function () {
-                                    t.run(done);
-                                }, 0);
+                                setTimeout(runNow, 0);
                             }
                         }, Math.random() * 100);
                     })(i);
                 }
                 if (!addAttr.length) {
-                    setTimeout(function () {
-                        t.run(done);
-                    }, 0);                    
+                    setTimeout(runNow, 0);                    
                 }
                 
             }, 0);
+            function runNow() {
+                QE.logPendingExceptions();
+                QE.logExceptionsToConsole(true);
+                var exceptionCount = 0;
+                QE.onException(function () { exceptionCount++; });
+                t.run(function (success) {
+                    QE.logPendingExceptions();
+                    done(success, exceptionCount);
+                });
+            }
         };
         t2.name = "[dynamic] " + t2.name;
         
@@ -180,7 +195,7 @@
     
     TEST({
         name: "conditional tunnel and $value for radios, programmatic",
-        body: ['<body><div qe qe:selected-child="selected.$element.getAttribute(\'value\')">',
+        body: ['<body><div qe qe:selected-child="$self.selected ? selected.$element.getAttribute(\'value\') : null">',
                '<input type="radio" name="radiogroup" value="1" qe qe-tunnel="$self into $parent.selected if $value">',
                '<input type="radio" name="radiogroup" value="2" qe qe-tunnel="$self into $parent.selected if $value">',
                '<input type="radio" name="radiogroup" value="3" qe qe-tunnel="$self into $parent.selected if $value">',
@@ -206,7 +221,7 @@
 
     TEST({
         name: "conditional tunnel and $value for radios, manual",
-        body: ['<body><div qe qe:selected-child="selected.$element.getAttribute(\'value\')">',
+        body: ['<body><div qe qe:selected-child="$self.selected ? selected.$element.getAttribute(\'value\') : null">',
                '<label><input type="radio" name="radiogroup" value="1" qe qe-tunnel="$self into $parent.selected if $value"> Option 1</label><br>',
                '<label><input type="radio" name="radiogroup" value="2" qe qe-tunnel="$self into $parent.selected if $value"> Option 2</label><br>',
                '<label><input type="radio" name="radiogroup" value="3" qe qe-tunnel="$self into $parent.selected if $value"> Option 3</label><br>',

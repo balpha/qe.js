@@ -5,6 +5,7 @@ declare interface ObjectConstructor {
 
 declare interface Function {
     displayName: string;
+    name: string;
 }
 
 declare interface Window {
@@ -359,10 +360,54 @@ namespace QE {
     }
     
     // ----------------------------------
+    
+    var nextExpressionId = 1;
+    var exceptions: { [id: number]: [string, Error] } = {};
+    var exceptionLogTimeout: number;
+    var exceptionLoggers: ((expression: string, exception: Error) => void)[] = [];
+    var doLogExceptionsToConsole = true;
+    exceptionLoggers.push(function (expression: string, exception: Error) {
+        if (doLogExceptionsToConsole && window.console && console.error) {
+            console.error("Expression `" + expression + "` threw " + exception.constructor.name + ": " +  exception.message + ", treating as undefined\n", exception);
+        }
+    });
+    function logException(exception: Error, expressionId: number, expression: string) {
+        exceptions[expressionId] = [expression, exception];
+        if (!exceptionLogTimeout) {
+            exceptionLogTimeout = setTimeout(outputLog, 0);
+        }
+    }
+    function noException(expressionId: number) {
+        delete exceptions[expressionId];
+    }
+    function outputLog() {
+        for (let i in exceptions) if (exceptions.hasOwnProperty(i)) {
+            for (let handler of exceptionLoggers) {
+                handler.apply(null, exceptions[i]);
+            }
+        }
+        exceptions = {};
+        exceptionLogTimeout = null;
+    }
+    
+    export function onException(f: (expression: string, exception: Error) => void) {
+        exceptionLoggers.push(f);
+    }
+    export function logPendingExceptions() {
+        if (exceptionLogTimeout) {
+            clearTimeout(exceptionLogTimeout);
+            outputLog();
+        }
+    }
+    export function logExceptionsToConsole(yesno: boolean) {
+        doLogExceptionsToConsole = yesno;
+    }
+    
     function ExpressionPrivate<T>(exp: string, scope: ScopePrivate, callback: (v: T) => void) : void;
     function ExpressionPrivate<T>(exp: string, scope: ScopePrivate, callback: (v: T) => void, onDestroy: () => void): IDestroyable;
     function ExpressionPrivate<T>(exp: string, scope: ScopePrivate, callback: (v: T) => void, onDestroy?: () => void): IDestroyable | void {
-        
+        var id = nextExpressionId;
+        nextExpressionId++;
         var func = new Function("scope", "with(scope){return " + exp +"}") as (s: IPublicScope) => T;
         var value: T;
         var destroying = false;
@@ -416,9 +461,13 @@ namespace QE {
             try {
                 newValue = func(scope._publicScope);
             } catch (ex) {
-                //console.log("expression", exp, "threw", ex, " -- returning undefined");
+                //console.warn("expression", exp, "threw", ex, " -- returning undefined");
+                logException(ex, id, exp);
                 threw = true;
                 newValue = undefined;
+            }
+            if (!threw) {
+                noException(id);
             }
             var newDependencies = endRecordAccess();
             if (threw||true) { // the dependency might not have been defined yet -- must watch for everything for now; with Proxy this can become smarter
