@@ -27,13 +27,17 @@ interface IDelayedProperty<T> {
     getCurrentValue(): T;
 }
 
-interface IPublicScope {
+interface IPublicScopeController {
     set(name: string, value: any): void;
     multiSet(name: string, value: any, token?: number) : number;
     unMultiSet(name: string, token: number): void;
     createDelayed<T>(name: string, attach: (setter: ((v: T) => void)) => void, detach: () => void, getCurrentValue: () => T): void;
     tearDown(): void;
     _id: number;
+}
+
+interface IPublicScope {
+    __qe_controller: IPublicScopeController;
 }
 
 interface IDestroyable {
@@ -77,14 +81,15 @@ namespace QE {
             } else {
                 this._publicScope = Object.create(Object);
             }
-            Object.defineProperty(this._publicScope, "_id", {
+            this._publicScope.__qe_controller = {} as IPublicScopeController;
+            Object.defineProperty(this._publicScope.__qe_controller, "_id", {
                 value: this._id
             });
             var that = this;
-            this._publicScope.set = function<T>(name: string, value: T) {
+            this._publicScope.__qe_controller.set = function<T>(name: string, value: T) {
                 this.multiSet(name, value, 0);
             };
-            this._publicScope.multiSet = function<T>(name: string, value: T, token?: number) { // token is optional
+            this._publicScope.__qe_controller.multiSet = function<T>(name: string, value: T, token?: number) { // token is optional
                 var stack: T[] = that._valueStacks[name];
                 if (!stack) {
                     stack = that._valueStacks[name] = [];
@@ -102,25 +107,25 @@ namespace QE {
                 that.applyValueStack(name);
                 return token;
             };
-            this._publicScope.unMultiSet = function(name: string, token: number) {
+            this._publicScope.__qe_controller.unMultiSet = function(name: string, token: number) {
                 var stack = that._valueStacks[name];
                 delete stack[token];
                 that.applyValueStack(name);
             };
 
-            this._publicScope.createDelayed = function<T>(name: string, attach: (setter: ((v: T) => void)) => void, detach: () => void, getCurrentValue: () => T) {
+            this._publicScope.__qe_controller.createDelayed = function<T>(name: string, attach: (setter: ((v: T) => void)) => void, detach: () => void, getCurrentValue: () => T) {
                 that.set(name, {
                     attach: attach,
                     detach: detach,
                     getCurrentValue: getCurrentValue
                 }, "create");
             };
-            this._publicScope.set("$self", this._publicScope);
-            this._publicScope.set("$parent", Object.getPrototypeOf(this._publicScope));
+            this._publicScope.__qe_controller.set("$self", this._publicScope);
+            this._publicScope.__qe_controller.set("$parent", Object.getPrototypeOf(this._publicScope));
             if (parent && parent._name) {
-                this._publicScope.set(parent._name, Object.getPrototypeOf(this._publicScope));
+                this._publicScope.__qe_controller.set(parent._name, Object.getPrototypeOf(this._publicScope));
             }
-            this._publicScope.tearDown = function () {
+            this._publicScope.__qe_controller.tearDown = function () {
                 that.tearDown();
             };
         }
@@ -162,7 +167,7 @@ namespace QE {
                             that._data[name] = (val as IDelayedProperty<T>).getCurrentValue();
                         }
                         var result = that._data[name];
-                        that.notifyAccessed(name, (result && result._id && scopes[result._id] &&scopes[result._id]._publicScope === result) ? getPrivateScopeFor(result) : null);
+                        that.notifyAccessed(name, getPrivateScopeFor(result)); // getPrivateScopeFor returns null if result isn't a scope
                         return result;
                     }
                 });
@@ -352,8 +357,10 @@ namespace QE {
         return accessStack.pop();
     }
     
-    function getPrivateScopeFor(publicScope: IPublicScope) {
-        var s = scopes[publicScope._id];
+    function getPrivateScopeFor(publicScope: IPublicScope | any) {
+        if (!(publicScope && publicScope.__qe_controller))
+            return null;
+        var s = scopes[publicScope.__qe_controller._id];
         if (s._publicScope === publicScope)
             return s;
         return null;

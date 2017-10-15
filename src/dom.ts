@@ -8,9 +8,9 @@ namespace QE {
     
     function build() {
         if (globalScope)
-            globalScope.tearDown();
+            globalScope.__qe_controller.tearDown();
         globalScope = Scope();
-        globalScope.set("$global", globalScope);
+        globalScope.__qe_controller.set("$global", globalScope);
         buildScopes(document.body, globalScope);
     }
     
@@ -48,7 +48,7 @@ namespace QE {
             return false;
         };
         
-        scope.createDelayed(prop, attach, detach, getCurrentValue);
+        scope.__qe_controller.createDelayed(prop, attach, detach, getCurrentValue);
     }
 
     function addValue(elem: HTMLInputElement, scope: IPublicScope) {
@@ -95,7 +95,7 @@ namespace QE {
             //throw "unsupported element for $value";
         };
         
-        scope.createDelayed("$value", attach, detach, getCurrenValue);
+        scope.__qe_controller.createDelayed("$value", attach, detach, getCurrenValue);
     }
     
     function addAttributes(elem: HTMLElement, scope: IPublicScope) {
@@ -109,14 +109,14 @@ namespace QE {
                     let ukan = unKebab(an);
                     if (elem.hasAttribute(an)) {
                         let val = elem.getAttribute(an);
-                        attrs.set(an, val);
+                        attrs.__qe_controller.set(an, val);
                         if (an !== ukan) {
-                            attrs.set(ukan, an);
+                            attrs.__qe_controller.set(ukan, an);
                         }
                     } else {
-                        attrs.set(an, undefined);
+                        attrs.__qe_controller.set(an, undefined);
                         if (an !== ukan) {
-                            attrs.set(ukan, undefined);
+                            attrs.__qe_controller.set(ukan, undefined);
                         }
                     }
                 }
@@ -130,7 +130,7 @@ namespace QE {
             if (mo)
                 mo.disconnect();
             if (attrs)
-                attrs.tearDown();
+                attrs.__qe_controller.tearDown();
             mo = attrs = null;
         };
         
@@ -143,16 +143,16 @@ namespace QE {
                     let ukname = unKebab(name);
                     let value = attributes[i].value;
                     
-                    attrs.set(name, value);
+                    attrs.__qe_controller.set(name, value);
                     if (name !== ukname) {
-                        attrs.set(ukname, value);
+                        attrs.__qe_controller.set(ukname, value);
                     }
                 }
             }
             return attrs;
         };
         
-        scope.createDelayed("$attributes", attach, detach, getCurrentValue);
+        scope.__qe_controller.createDelayed("$attributes", attach, detach, getCurrentValue);
         
     }
     
@@ -165,7 +165,7 @@ namespace QE {
             addValue(elem, scope);
         }
         addAttributes(elem, scope);
-        scope.set("$element", elem);
+        scope.__qe_controller.set("$element", elem);
         
         return scope;
     }
@@ -189,7 +189,7 @@ namespace QE {
                 let attr = attrs[i];
                 if (/^qe\./.test(attr.name)) {
                     let prop = unKebab(attr.name.substr(3));
-                    scope.set(prop, attr.value);
+                    scope.__qe_controller.set(prop, attr.value);
                 } else if (/^qe:/.test(attr.name)) {
                     expressionAttribute(scope, elem, attr);
                 } else if (attr.name === "qe-tunnel") {
@@ -297,9 +297,9 @@ namespace QE {
         var doTunnel = function () {
             if (tunnelExitScope) {
                 if (tunnelActive) {
-                    token = tunnelExitScope.multiSet(tunnelExitProperty, tunnelValue, token);
+                    token = tunnelExitScope.__qe_controller.multiSet(tunnelExitProperty, tunnelValue, token);
                 } else if (token) {
-                    tunnelExitScope.unMultiSet(tunnelExitProperty, token);
+                    tunnelExitScope.__qe_controller.unMultiSet(tunnelExitProperty, token);
                     token = null;
                 }
             }

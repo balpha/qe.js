@@ -21,14 +21,15 @@ var QE;
             else {
                 this._publicScope = Object.create(Object);
             }
-            Object.defineProperty(this._publicScope, "_id", {
+            this._publicScope.__qe_controller = {};
+            Object.defineProperty(this._publicScope.__qe_controller, "_id", {
                 value: this._id
             });
             var that = this;
-            this._publicScope.set = function (name, value) {
+            this._publicScope.__qe_controller.set = function (name, value) {
                 this.multiSet(name, value, 0);
             };
-            this._publicScope.multiSet = function (name, value, token) {
+            this._publicScope.__qe_controller.multiSet = function (name, value, token) {
                 var stack = that._valueStacks[name];
                 if (!stack) {
                     stack = that._valueStacks[name] = [];
@@ -46,24 +47,24 @@ var QE;
                 that.applyValueStack(name);
                 return token;
             };
-            this._publicScope.unMultiSet = function (name, token) {
+            this._publicScope.__qe_controller.unMultiSet = function (name, token) {
                 var stack = that._valueStacks[name];
                 delete stack[token];
                 that.applyValueStack(name);
             };
-            this._publicScope.createDelayed = function (name, attach, detach, getCurrentValue) {
+            this._publicScope.__qe_controller.createDelayed = function (name, attach, detach, getCurrentValue) {
                 that.set(name, {
                     attach: attach,
                     detach: detach,
                     getCurrentValue: getCurrentValue
                 }, "create");
             };
-            this._publicScope.set("$self", this._publicScope);
-            this._publicScope.set("$parent", Object.getPrototypeOf(this._publicScope));
+            this._publicScope.__qe_controller.set("$self", this._publicScope);
+            this._publicScope.__qe_controller.set("$parent", Object.getPrototypeOf(this._publicScope));
             if (parent && parent._name) {
-                this._publicScope.set(parent._name, Object.getPrototypeOf(this._publicScope));
+                this._publicScope.__qe_controller.set(parent._name, Object.getPrototypeOf(this._publicScope));
             }
-            this._publicScope.tearDown = function () {
+            this._publicScope.__qe_controller.tearDown = function () {
                 that.tearDown();
             };
         }
@@ -93,7 +94,7 @@ var QE;
                             that._data[name] = val.getCurrentValue();
                         }
                         var result = that._data[name];
-                        that.notifyAccessed(name, (result && result._id && scopes[result._id] && scopes[result._id]._publicScope === result) ? getPrivateScopeFor(result) : null);
+                        that.notifyAccessed(name, getPrivateScopeFor(result));
                         return result;
                     }
                 });
@@ -253,7 +254,9 @@ var QE;
         return accessStack.pop();
     }
     function getPrivateScopeFor(publicScope) {
-        var s = scopes[publicScope._id];
+        if (!(publicScope && publicScope.__qe_controller))
+            return null;
+        var s = scopes[publicScope.__qe_controller._id];
         if (s._publicScope === publicScope)
             return s;
         return null;
@@ -413,9 +416,9 @@ var QE;
     var EDGE = /Edge/.test(navigator.userAgent);
     function build() {
         if (globalScope)
-            globalScope.tearDown();
+            globalScope.__qe_controller.tearDown();
         globalScope = Scope();
-        globalScope.set("$global", globalScope);
+        globalScope.__qe_controller.set("$global", globalScope);
         buildScopes(document.body, globalScope);
     }
     function addHover(elem, scope) {
@@ -448,7 +451,7 @@ var QE;
             }
             return false;
         };
-        scope.createDelayed(prop, attach, detach, getCurrentValue);
+        scope.__qe_controller.createDelayed(prop, attach, detach, getCurrentValue);
     }
     function addValue(elem, scope) {
         var onChange;
@@ -491,7 +494,7 @@ var QE;
             }
             return elem.value;
         };
-        scope.createDelayed("$value", attach, detach, getCurrenValue);
+        scope.__qe_controller.createDelayed("$value", attach, detach, getCurrenValue);
     }
     function addAttributes(elem, scope) {
         var mo;
@@ -504,15 +507,15 @@ var QE;
                     var ukan = unKebab(an);
                     if (elem.hasAttribute(an)) {
                         var val = elem.getAttribute(an);
-                        attrs.set(an, val);
+                        attrs.__qe_controller.set(an, val);
                         if (an !== ukan) {
-                            attrs.set(ukan, an);
+                            attrs.__qe_controller.set(ukan, an);
                         }
                     }
                     else {
-                        attrs.set(an, undefined);
+                        attrs.__qe_controller.set(an, undefined);
                         if (an !== ukan) {
-                            attrs.set(ukan, undefined);
+                            attrs.__qe_controller.set(ukan, undefined);
                         }
                     }
                 }
@@ -524,7 +527,7 @@ var QE;
             if (mo)
                 mo.disconnect();
             if (attrs)
-                attrs.tearDown();
+                attrs.__qe_controller.tearDown();
             mo = attrs = null;
         };
         var getCurrentValue = function () {
@@ -535,15 +538,15 @@ var QE;
                     var name_1 = attributes[i].name;
                     var ukname = unKebab(name_1);
                     var value = attributes[i].value;
-                    attrs.set(name_1, value);
+                    attrs.__qe_controller.set(name_1, value);
                     if (name_1 !== ukname) {
-                        attrs.set(ukname, value);
+                        attrs.__qe_controller.set(ukname, value);
                     }
                 }
             }
             return attrs;
         };
-        scope.createDelayed("$attributes", attach, detach, getCurrentValue);
+        scope.__qe_controller.createDelayed("$attributes", attach, detach, getCurrentValue);
     }
     function domScope(elem, parentScope, name) {
         var scope = Scope(parentScope, name);
@@ -553,7 +556,7 @@ var QE;
             addValue(elem, scope);
         }
         addAttributes(elem, scope);
-        scope.set("$element", elem);
+        scope.__qe_controller.set("$element", elem);
         return scope;
     }
     function unKebab(s) {
@@ -573,7 +576,7 @@ var QE;
                 var attr = attrs[i];
                 if (/^qe\./.test(attr.name)) {
                     var prop = unKebab(attr.name.substr(3));
-                    scope.set(prop, attr.value);
+                    scope.__qe_controller.set(prop, attr.value);
                 }
                 else if (/^qe:/.test(attr.name)) {
                     expressionAttribute(scope, elem, attr);
@@ -681,10 +684,10 @@ var QE;
         var doTunnel = function () {
             if (tunnelExitScope) {
                 if (tunnelActive) {
-                    token = tunnelExitScope.multiSet(tunnelExitProperty, tunnelValue, token);
+                    token = tunnelExitScope.__qe_controller.multiSet(tunnelExitProperty, tunnelValue, token);
                 }
                 else if (token) {
-                    tunnelExitScope.unMultiSet(tunnelExitProperty, token);
+                    tunnelExitScope.__qe_controller.unMultiSet(tunnelExitProperty, token);
                     token = null;
                 }
             }
