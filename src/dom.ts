@@ -5,6 +5,7 @@ namespace QE {
     var globalScope: IPublicScope;
     var MODIFIED_EVENT = "qe:modified-programmatically";
     var EDGE = /Edge/.test(navigator.userAgent);
+    var needToFixEdgeCrash = EDGE;
     
     function build() {
         if (globalScope)
@@ -230,6 +231,15 @@ namespace QE {
             throw "I'm sorry Dave, I'm afraid I can't do that."; // technically it works, but I don't see how it would ever be a good idea
         }
         Expression(attr.value, scope, function (val) {
+            if (needToFixEdgeCrash && actualAttr === "style") {
+                // Under some conditions, setting the style attribute crashes Edge
+                // (it happens consistently in the "$value for text inputs..." test).
+                // It appears that there's some sort of initialization race, because
+                // just *accessing* them element's style property before setting the
+                // atribute fixes things.
+                elem.style;
+                needToFixEdgeCrash = false;
+            }
             if (val === false) {
                 elem.removeAttribute(actualAttr);
             } else if (actualAttr === "class" && typeof val !== "string") {
@@ -251,14 +261,6 @@ namespace QE {
             } else if (val === null || val === undefined) { // for class and style, you must use false
                 elem.removeAttribute(actualAttr);
             } else {
-                if (EDGE && actualAttr === "style") {
-                    // Under some conditions, setting the style attribute crashes Edge
-                    // (it happens consistently in the "$value for text inputs..." test).
-                    // It appears that there's some sort of initialization race, because
-                    // just *accessing* them element's style property before setting the
-                    // atribute fixes things.
-                    elem.style;
-                }
                 elem.setAttribute(actualAttr, "" + val);
             }
         });

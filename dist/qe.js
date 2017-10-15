@@ -414,6 +414,7 @@ var QE;
     var globalScope;
     var MODIFIED_EVENT = "qe:modified-programmatically";
     var EDGE = /Edge/.test(navigator.userAgent);
+    var needToFixEdgeCrash = EDGE;
     function build() {
         if (globalScope)
             globalScope.__qe_controller.tearDown();
@@ -620,6 +621,10 @@ var QE;
             throw "I'm sorry Dave, I'm afraid I can't do that.";
         }
         Expression(attr.value, scope, function (val) {
+            if (needToFixEdgeCrash && actualAttr === "style") {
+                elem.style;
+                needToFixEdgeCrash = false;
+            }
             if (val === false) {
                 elem.removeAttribute(actualAttr);
             }
@@ -648,9 +653,6 @@ var QE;
                 elem.removeAttribute(actualAttr);
             }
             else {
-                if (EDGE && actualAttr === "style") {
-                    elem.style;
-                }
                 elem.setAttribute(actualAttr, "" + val);
             }
         });
