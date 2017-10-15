@@ -65,7 +65,7 @@ I have a working proof-of-concept. It has a lot of room for optimizations, but f
 
 QE stands for "quantum entanglement". There is already a JavaScript [project](https://github.com/aidanbdh/quantum-entanglement) called "quantum entanglement" (because of course there is), so I just went with the abbreviation.
 
-On the JavaScript side, all it requires is a single call `QE()` at some point to initialize the library. Afterwards, any HTML element, whether it was in the original HTML document or added to the DOM via JS at any time, can be given magic behavior just by virtue of having the `qe` attribute.
+On the JavaScript side, all it requires is a single call `QE.init()` at some point to initialize the library. Afterwards, any HTML element, whether it was in the original HTML document or added to the DOM via JS at any time, can be given magic behavior just by virtue of having the `qe` attribute.
 
 ```html
 <div class="whatever" qe>Hello!</div>
@@ -157,7 +157,7 @@ The scope of any entangled element has a couple of built-in properties:
 : is the ancestor scope of all element scopes.
 
 `$self`
-: refers to the scope itself. You can usually leave this off (the expressions `$self.$hover` and `$hover` are equivalent). It's really only useful in one case: If an element wants to tunnel its complete scope somewhere else, e.g. `qe-tunnel="$self into $parent.child"`.
+: refers to the scope itself. You can often leave this off (for example, the expressions `$self.$hover` and `$hover` are equivalent). However if a property doesn't always exist, say, `currentSelection` might be an error, but `$self.CurrentSelection` would just be `undefined` (similar to a global variable lookup with `console` versus `window.console`). Another use case for `$self` happens if an element wants to tunnel its complete scope somewhere else, e.g. `qe-tunnel="$self into $parent.child"`.
 
 ## Advanced usage
 
