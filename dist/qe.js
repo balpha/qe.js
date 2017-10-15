@@ -93,7 +93,7 @@ var QE;
                             that._data[name] = val.getCurrentValue();
                         }
                         var result = that._data[name];
-                        that.notifyAccessed(name, (result._id && scopes[result._id] && scopes[result._id]._publicScope === result) ? getPrivateScopeFor(result) : null);
+                        that.notifyAccessed(name, (result && result._id && scopes[result._id] && scopes[result._id]._publicScope === result) ? getPrivateScopeFor(result) : null);
                         return result;
                     }
                 });
@@ -178,7 +178,8 @@ var QE;
             }
             var deps = this._dependents[name];
             var i = deps.indexOf(cb);
-            deps.splice(i, 1);
+            if (i >= 0)
+                deps.splice(i, 1);
         };
         ;
         ScopePrivate.prototype.tearingDown = function () {
@@ -270,6 +271,7 @@ var QE;
                         var dep = deps[i];
                         dep[0].off(dep[1], onChange);
                     }
+                value = undefined;
                 if (onDestroy)
                     onDestroy();
                 return;
@@ -305,6 +307,7 @@ var QE;
             }
             catch (ex) {
                 threw = true;
+                newValue = undefined;
             }
             var newDependencies = endRecordAccess();
             if (threw || true) {

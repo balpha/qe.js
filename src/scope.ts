@@ -161,7 +161,7 @@ namespace QE {
                             that._data[name] = (val as IDelayedProperty<T>).getCurrentValue();
                         }
                         var result = that._data[name];
-                        that.notifyAccessed(name, (result._id && scopes[result._id] &&scopes[result._id]._publicScope === result) ? getPrivateScopeFor(result) : null);
+                        that.notifyAccessed(name, (result && result._id && scopes[result._id] &&scopes[result._id]._publicScope === result) ? getPrivateScopeFor(result) : null);
                         return result;
                     }
                 });
@@ -255,7 +255,8 @@ namespace QE {
             }
             var deps = this._dependents[name];
             var i = deps.indexOf(cb);
-            deps.splice(i, 1);
+            if (i >= 0)
+                deps.splice(i, 1);
         };
         tearingDown() {
             this._tearingDown = true;
@@ -374,6 +375,7 @@ namespace QE {
                     let dep = deps[i];
                     dep[0].off(dep[1], onChange);
                 }
+                value = undefined;
                 if (onDestroy)
                     onDestroy();
                 return;
@@ -416,6 +418,7 @@ namespace QE {
             } catch (ex) {
                 //console.log("expression", exp, "threw", ex, " -- returning undefined");
                 threw = true;
+                newValue = undefined;
             }
             var newDependencies = endRecordAccess();
             if (threw||true) { // the dependency might not have been defined yet -- must watch for everything for now; with Proxy this can become smarter
