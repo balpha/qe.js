@@ -248,16 +248,39 @@ namespace QE {
     }
     
     function expressionAttribute_class(elem: HTMLElement, actualAttr: string, scope: IPublicScope, expression: string) {
+        var added: { [p: string]: boolean } = {},
+            removed: { [p: string] : boolean } = {};
+        
         Expression(expression, scope, function (val) {
             if (val === false) {
                 elem.removeAttribute(actualAttr);
             } else if (typeof val !== "string") {
                 if (typeof(val) === "object") {
                     for (let cls in val) if (val.hasOwnProperty(cls)) {
-                        if ((val as IStringDict)[cls]) {
-                            elem.classList.add(cls);
+                        if ((val as {[p:string]:any})[cls]) {
+                            if (!elem.classList.contains(cls)) {
+                                if (!removed[cls])
+                                    added[cls] = true;
+                                elem.classList.add(cls);
+                            }
                         } else {
+                            if (elem.classList.contains(cls)) {
+                                if (!added[cls])
+                                    removed[cls] = true;
+                                elem.classList.remove(cls);
+                            }
+                        }
+                    }
+                    for (let cls in added) if (added.hasOwnProperty(cls)) {
+                        if (!val.hasOwnProperty(cls)) {
                             elem.classList.remove(cls);
+                            delete added[cls];
+                        }
+                    }
+                    for (let cls in removed) if (removed.hasOwnProperty(cls)) {
+                        if (!val.hasOwnProperty(cls)) {
+                            elem.classList.add(cls);
+                            delete removed[cls];
                         }
                     }
                 }

@@ -633,6 +633,7 @@ var QE;
         }
     }
     function expressionAttribute_class(elem, actualAttr, scope, expression) {
+        var added = {}, removed = {};
         Expression(expression, scope, function (val) {
             if (val === false) {
                 elem.removeAttribute(actualAttr);
@@ -642,10 +643,32 @@ var QE;
                     for (var cls in val)
                         if (val.hasOwnProperty(cls)) {
                             if (val[cls]) {
-                                elem.classList.add(cls);
+                                if (!elem.classList.contains(cls)) {
+                                    if (!removed[cls])
+                                        added[cls] = true;
+                                    elem.classList.add(cls);
+                                }
                             }
                             else {
+                                if (elem.classList.contains(cls)) {
+                                    if (!added[cls])
+                                        removed[cls] = true;
+                                    elem.classList.remove(cls);
+                                }
+                            }
+                        }
+                    for (var cls in added)
+                        if (added.hasOwnProperty(cls)) {
+                            if (!val.hasOwnProperty(cls)) {
                                 elem.classList.remove(cls);
+                                delete added[cls];
+                            }
+                        }
+                    for (var cls in removed)
+                        if (removed.hasOwnProperty(cls)) {
+                            if (!val.hasOwnProperty(cls)) {
+                                elem.classList.add(cls);
+                                delete removed[cls];
                             }
                         }
                 }

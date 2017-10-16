@@ -411,7 +411,60 @@
                 done(ok);
             }, 0);
         }
-    });    
+    });
+    TEST({
+        name: "consistent class addition and removal",
+        body: ['<body class="first" qe qe:class="doFirst && doSecond ? { first: first, second: second } : doFirst ? { first: first } : doSecond ? { second: second } : {}">',
+               '<input id="dofirst" type="checkbox" qe qe-tunnel="$value into $parent.doFirst">',
+               '<input id="dosecond" type="checkbox" qe qe-tunnel="$value into $parent.doSecond">',
+               '<input id="first" type="checkbox" qe qe-tunnel="$value into $parent.first">',
+               '<input id="second" type="checkbox" qe qe-tunnel="$value into $parent.second">',
+               '</body>'].join(""),
+        run: function (done) {
+            function classMatch(clss) {
+                var actual = Array.prototype.slice.call(document.body.classList);
+                actual.sort();
+                actual = actual.join(" ");
+                if (actual !== clss) {
+                    console.log("found classes", actual, "but expected", clss);
+                    return false;
+                }
+                return true;
+            }
+            var doFirst = tools.qs("#dofirst");
+            var doSecond = tools.qs("#dosecond");
+            var first = tools.qs("#first");
+            var second = tools.qs("#second");
+            
+            var ok = classMatch("first");
+            
+            doSecond.checked = true;
+            ok = ok && classMatch("first");
+            second.checked = true;
+            ok = ok && classMatch("first second");
+            doSecond.checked = false;
+            ok = ok && classMatch("first");
+            doFirst.checked = true;
+            ok = ok && classMatch("");
+            doSecond.checked = true;
+            ok = ok && classMatch("second");
+            first.checked = true;
+            ok = ok && classMatch("first second");
+            doFirst.checked = false;
+            ok = ok && classMatch("first second");
+            second.checked = false;
+            ok = ok && classMatch("first");
+            first.checked = false;
+            ok = ok && classMatch("first");
+            doFirst.checked = true;
+            ok = ok && classMatch("");
+            doSecond.checked = false;
+            ok = ok && classMatch("");
+            doFirst.checked = false;
+            ok = ok && classMatch("first");
+            done(ok);
+        }
+    });
     window.QETest = QETest;
     window.QETestResult = QETestResult;
 })();
