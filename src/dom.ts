@@ -1,3 +1,4 @@
+///<reference path="scope.ts"/>
 namespace QE {
     var Scope = QE.Scope;
     var Expression = QE.Expression;
