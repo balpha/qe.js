@@ -3,10 +3,11 @@
         "noImplicitAny": true,
         "removeComments": true,
         "target": "es5",
+        "newLine": "lf",
         "outFile": "../dist/qe.js"
     },
     "include": [
         "scope.ts",
         "dom.ts"
-    ],
+    ]
 }
