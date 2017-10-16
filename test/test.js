@@ -3,23 +3,27 @@
     var nextTestId = 0;
     function QETest() {
         TESTS = AUTOMATIC_TESTS.concat(MANUAL_TESTS);
-        if (location.search) {
-            tools.qs("head").removeChild(tools.qs("style"));
-            testCase(location.search.substr(1));
-        } else {
-            nextTest();
-        }
+        setTimeout(function () {
+            if (location.search) {
+                tools.qs("head").removeChild(tools.qs("style"));
+                testCase(location.search.substr(1));
+            } else {
+                nextTest();
+            }
+        }, 0);
     }
     function QETestResult(id, success, exceptions) {
-        var p = document.getElementById("result-" + id);
-        p.textContent = TESTS[id].name + ": " + (success ? "pass" : "fail") + (exceptions > 0 ? " [" + exceptions + " exception(s)]" : "");
-        p.classList.remove("pending");
-        p.classList.add(success ? "pass" : "fail");
-        if (exceptions > 0) {
-            p.classList.add("exceptions");
-        }
-        tools.qs("#iframeholder").removeChild(tools.qs("iframe"));
-        nextTest();
+        setTimeout(function() {
+            var p = document.getElementById("result-" + id);
+            p.textContent = TESTS[id].name + ": " + (success ? "pass" : "fail") + (exceptions > 0 ? " [" + exceptions + " exception(s)]" : "");
+            p.classList.remove("pending");
+            p.classList.add(success ? "pass" : "fail");
+            if (exceptions > 0) {
+                p.classList.add("exceptions");
+            }
+            tools.qs("#iframeholder").removeChild(tools.qs("iframe"));
+            nextTest();
+        }, 0);
     }
     
     function nextTest() {
