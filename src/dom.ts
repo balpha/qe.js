@@ -230,8 +230,10 @@ namespace QE {
         if (/^qe(?:\.|:|$)/.test(actualAttr)) {
             throw "I'm sorry Dave, I'm afraid I can't do that."; // technically it works, but I don't see how it would ever be a good idea
         }
-        Expression(attr.value, scope, function (val) {
-            if (EDGE && actualAttr === "style") {
+        if (actualAttr === "class") {
+            expressionAttribute_class(elem, actualAttr, scope, attr.value);
+        } else if (actualAttr === "style") {
+            if (EDGE) {
                 // Under some conditions, setting the style attribute crashes Edge
                 // (it happens consistently in the "$value for text inputs..." test).
                 // It appears that there's some sort of initialization race, because
@@ -239,9 +241,17 @@ namespace QE {
                 // atribute fixes things.
                 elem.style;
             }
+            expressionAttribute_style(elem, actualAttr, scope, attr.value);
+        } else {
+            expressionAttribute_other(elem, actualAttr, scope, attr.value);
+        }
+    }
+    
+    function expressionAttribute_class(elem: HTMLElement, actualAttr: string, scope: IPublicScope, expression: string) {
+        Expression(expression, scope, function (val) {
             if (val === false) {
                 elem.removeAttribute(actualAttr);
-            } else if (actualAttr === "class" && typeof val !== "string") {
+            } else if (typeof val !== "string") {
                 if (typeof(val) === "object") {
                     for (let cls in val) if (val.hasOwnProperty(cls)) {
                         if ((val as IStringDict)[cls]) {
@@ -251,17 +261,35 @@ namespace QE {
                         }
                     }
                 }
-            } else if (actualAttr === "style" && typeof val !== "string") {
+            } else {
+                elem.setAttribute(actualAttr, val);
+            }
+        });
+    }
+    
+    function expressionAttribute_style(elem: HTMLElement, actualAttr: string, scope: IPublicScope, expression: string) {
+        Expression(expression, scope, function (val) {
+            if (val === false) {
+                elem.removeAttribute(actualAttr);
+            } else if (typeof val !== "string") {
                 if (typeof(val) === "object") {
                     for (let prop in val) if (val.hasOwnProperty(prop)) {
                         elem.style.setProperty(kebab(prop), (val as IStringDict)[prop]);
                     }
                 }
-            } else if (val === null || val === undefined) { // for class and style, you must use false
+            } else {
+                elem.setAttribute(actualAttr, val);
+            }
+        });
+    }
+    
+    function expressionAttribute_other(elem: HTMLElement, actualAttr: string, scope: IPublicScope, expression: string) {
+        Expression(expression, scope, function (val) {
+            if (val === false || val === null || val === undefined) { // for class and style, you must use false
                 elem.removeAttribute(actualAttr);
             } else {
                 elem.setAttribute(actualAttr, "" + val);
-            }
+            }            
         });
     }
     

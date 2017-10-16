@@ -619,14 +619,25 @@ var QE;
         if (/^qe(?:\.|:|$)/.test(actualAttr)) {
             throw "I'm sorry Dave, I'm afraid I can't do that.";
         }
-        Expression(attr.value, scope, function (val) {
-            if (EDGE && actualAttr === "style") {
+        if (actualAttr === "class") {
+            expressionAttribute_class(elem, actualAttr, scope, attr.value);
+        }
+        else if (actualAttr === "style") {
+            if (EDGE) {
                 elem.style;
             }
+            expressionAttribute_style(elem, actualAttr, scope, attr.value);
+        }
+        else {
+            expressionAttribute_other(elem, actualAttr, scope, attr.value);
+        }
+    }
+    function expressionAttribute_class(elem, actualAttr, scope, expression) {
+        Expression(expression, scope, function (val) {
             if (val === false) {
                 elem.removeAttribute(actualAttr);
             }
-            else if (actualAttr === "class" && typeof val !== "string") {
+            else if (typeof val !== "string") {
                 if (typeof (val) === "object") {
                     for (var cls in val)
                         if (val.hasOwnProperty(cls)) {
@@ -639,7 +650,17 @@ var QE;
                         }
                 }
             }
-            else if (actualAttr === "style" && typeof val !== "string") {
+            else {
+                elem.setAttribute(actualAttr, val);
+            }
+        });
+    }
+    function expressionAttribute_style(elem, actualAttr, scope, expression) {
+        Expression(expression, scope, function (val) {
+            if (val === false) {
+                elem.removeAttribute(actualAttr);
+            }
+            else if (typeof val !== "string") {
                 if (typeof (val) === "object") {
                     for (var prop in val)
                         if (val.hasOwnProperty(prop)) {
@@ -647,7 +668,14 @@ var QE;
                         }
                 }
             }
-            else if (val === null || val === undefined) {
+            else {
+                elem.setAttribute(actualAttr, val);
+            }
+        });
+    }
+    function expressionAttribute_other(elem, actualAttr, scope, expression) {
+        Expression(expression, scope, function (val) {
+            if (val === false || val === null || val === undefined) {
                 elem.removeAttribute(actualAttr);
             }
             else {
