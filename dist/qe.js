@@ -72,7 +72,7 @@
             }
             ScopePrivate.prototype.set = function (name, val, delayed) {
                 if (this._tearingDown) {
-                    throw "scope is tearing down, cannot set";
+                    return;
                 }
                 var oldVal = null;
                 var that = this;
@@ -259,7 +259,7 @@
             if (!(publicScope && publicScope.__qe_controller))
                 return null;
             var s = scopes[publicScope.__qe_controller._id];
-            if (s._publicScope === publicScope)
+            if (s && s._publicScope === publicScope)
                 return s;
             return null;
         }
@@ -377,7 +377,7 @@
                     for (var i = 0; i < myDependencies.length; i++) {
                         var dep = myDependencies[i];
                         dep[0].on(dep[1], onChange);
-                        if (dep[2]) {
+                        if (dep[2] && !dep[2]._tearingDown) {
                             scopeValued.push([dep[2], null]);
                             dep[2].on(null, onChange);
                         }
@@ -545,6 +545,26 @@
         };
         scope.__qe_controller.createDelayed("$attributes", attach, detach, getCurrentValue);
     }
+    var scopes = {};
+    function getScopeForElement(elem) {
+        return scopes[elem.__qe_scope_id];
+    }
+    function tearDownElementScope(elem) {
+        var s = getScopeForElement(elem);
+        delete scopes[s.__qe_controller._id];
+        delete elem.__qe_scope_id;
+        s.__qe_controller.tearDown();
+    }
+    function findClosestEntangledAncestor(elem) {
+        if (elem.nodeName === "BODY")
+            return null;
+        do {
+            elem = elem.parentElement;
+        } while (elem.nodeName !== "BODY" && !elem.hasOwnProperty("__qe_scope_id"));
+        if (!elem.hasOwnProperty("__qe_scope_id"))
+            return null;
+        return elem;
+    }
     function domScope(elem, parentScope, name) {
         var scope = Scope(parentScope, name);
         addHover(elem, scope);
@@ -554,6 +574,8 @@
         }
         addAttributes(elem, scope);
         scope.__qe_controller.set("$element", elem);
+        elem.__qe_scope_id = scope.__qe_controller._id;
+        scopes[scope.__qe_controller._id] = scope;
         return scope;
     }
     function unKebab(s) {
@@ -765,6 +787,8 @@
             }
             var oldExpressions = expressions;
             expressions = null;
+            tunnelActive = false;
+            doTunnel();
             for (var _i = 0, oldExpressions_1 = oldExpressions; _i < oldExpressions_1.length; _i++) {
                 var e = oldExpressions_1[_i];
                 e.destroy();
@@ -821,13 +845,54 @@
             triggerModifiedEventOnPropertyChange("input", props[i]);
         }
     }
+    function elementHasEntangledDescendants(elem) {
+        for (var i = 0; i < elem.children.length; i++) {
+            var child = elem.children[i];
+            if (child.hasOwnProperty("__qe_scope_id"))
+                return true;
+            if (elementHasEntangledDescendants(child))
+                return true;
+        }
+        return false;
+    }
     QE.init = function () {
         var mo = new MutationObserver(function (mrs) {
             for (var i = 0; i < mrs.length; i++) {
                 var mr = mrs[i];
-                if (mr.type === "attributes" && /^qe/.test(mr.attributeName) && mr.oldValue !== mr.target.getAttribute(mr.attributeName)) {
-                    build();
-                    return;
+                var elem = mr.target;
+                if (mr.type === "attributes" && /^qe(?:-tunnel$|\.|:|$)/.test(mr.attributeName) && mr.oldValue !== elem.getAttribute(mr.attributeName)) {
+                    if (/^qe\./.test(mr.attributeName)) {
+                        var prop = unKebab(mr.attributeName.substr(3));
+                        getScopeForElement(elem).__qe_controller.set(prop, elem.hasAttribute(mr.attributeName) ? elem.getAttribute(mr.attributeName) : undefined);
+                        continue;
+                    }
+                    var closest = findClosestEntangledAncestor(elem);
+                    if (closest) {
+                        if (elementHasEntangledDescendants(elem)) {
+                            var grandParent = getScopeForElement(closest).$parent;
+                            tearDownElementScope(closest);
+                            buildScopes(closest, grandParent);
+                        }
+                        else {
+                            var old = getScopeForElement(elem);
+                            if (old) {
+                                tearDownElementScope(elem);
+                            }
+                            buildScopes(elem, getScopeForElement(closest));
+                        }
+                    }
+                    else {
+                        var old = getScopeForElement(elem);
+                        if (old) {
+                            tearDownElementScope(elem);
+                            buildScopes(elem, globalScope);
+                        }
+                        else {
+                            build();
+                            return;
+                        }
+                    }
+                    continue;
                 }
                 if (anyNodeIsQe(mr.addedNodes) || anyNodeIsQe(mr.removedNodes)) {
                     build();

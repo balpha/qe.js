@@ -13,6 +13,10 @@ declare interface Window {
     Expression: any;//FIXME
 }
 
+declare interface HTMLElement {
+    __qe_scope_id: number;
+}
+
 interface ISetter<T> {
     (value: T): void
 }

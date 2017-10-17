@@ -47,7 +47,10 @@
     function testCase(id) {
         var test = TESTS[id];
         test.run(function (success, exceptions) {
-            window.parent.QETestResult(id, success, exceptions);
+            if (window.parent === window)
+                console.log(success ?"success" : "fail");
+            else
+                window.parent.QETestResult(id, success, exceptions);
         });
     }
     

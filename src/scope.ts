@@ -94,7 +94,7 @@
         
         set<T>(name: string, val: T | IDelayedProperty<T>, delayed?: string): void {
             if (this._tearingDown) {
-                throw "scope is tearing down, cannot set";
+                return;
             }
             
             var oldVal = null;
@@ -314,7 +314,7 @@
         if (!(publicScope && publicScope.__qe_controller))
             return null;
         var s = scopes[publicScope.__qe_controller._id];
-        if (s._publicScope === publicScope)
+        if (s && s._publicScope === publicScope)
             return s;
         return null;
     }
@@ -442,7 +442,7 @@
             if (myDependencies) for (let i = 0; i < myDependencies.length; i++) {
                 let dep = myDependencies[i];
                 dep[0].on(dep[1], onChange);
-                if (dep[2]) {
+                if (dep[2] && !(dep[2] as ScopePrivate)._tearingDown) {
                     scopeValued.push([dep[2] as ScopePrivate, null]);
                     (dep[2] as ScopePrivate).on(null, onChange);
                 }

@@ -156,6 +156,30 @@
         
     }
     
+    var scopes: { [i: number]: IPublicScope } = {};
+    
+    function getScopeForElement(elem: HTMLElement): IPublicScope {
+        return scopes[elem.__qe_scope_id];
+    }
+    
+    function tearDownElementScope(elem: HTMLElement): void {
+        var s = getScopeForElement(elem);
+        delete scopes[s.__qe_controller._id];
+        delete elem.__qe_scope_id;
+        s.__qe_controller.tearDown();
+    }
+    
+    function findClosestEntangledAncestor(elem: HTMLElement): HTMLElement {
+        if (elem.nodeName === "BODY")
+            return null;
+        do {
+            elem = elem.parentElement as HTMLElement;
+        } while (elem.nodeName !== "BODY" && !elem.hasOwnProperty("__qe_scope_id"))
+        if (!elem.hasOwnProperty("__qe_scope_id"))
+            return null;
+        return elem;
+    }
+    
     function domScope(elem: HTMLElement, parentScope: IPublicScope, name?: string): IPublicScope {
         var scope = Scope(parentScope, name);
         
@@ -166,7 +190,8 @@
         }
         addAttributes(elem, scope);
         scope.__qe_controller.set("$element", elem);
-        
+        elem.__qe_scope_id = scope.__qe_controller._id;
+        scopes[scope.__qe_controller._id] = scope;
         return scope;
     }
     
@@ -383,6 +408,8 @@
             }
             var oldExpressions = expressions;
             expressions = null;
+            tunnelActive=false;
+            doTunnel();
             for (let e of oldExpressions) {
                 e.destroy();
             }
@@ -460,14 +487,53 @@
         
     }
     
+    function elementHasEntangledDescendants(elem: Element) {
+        for (var i=0; i<elem.children.length; i++) {
+            var child = elem.children[i];
+            if (child.hasOwnProperty("__qe_scope_id"))
+                return true;
+            if (elementHasEntangledDescendants(child))
+                return true;
+        }
+        return false;
+    }
+    
     QE.init = function() {
         var mo = new MutationObserver(function (mrs) {
             for (let i = 0; i < mrs.length; i++) {
                 let mr = mrs[i];
-                
-                if (mr.type === "attributes" && /^qe/.test(mr.attributeName) && mr.oldValue !== (mr.target as HTMLElement).getAttribute(mr.attributeName)) {
-                    build();
-                    return;
+                let elem = mr.target as HTMLElement;
+                if (mr.type === "attributes" && /^qe(?:-tunnel$|\.|:|$)/.test(mr.attributeName) && mr.oldValue !== elem.getAttribute(mr.attributeName)) {
+                    if (/^qe\./.test(mr.attributeName)) {
+                        let prop = unKebab(mr.attributeName.substr(3));
+                        getScopeForElement(elem).__qe_controller.set(prop, elem.hasAttribute(mr.attributeName) ? elem.getAttribute(mr.attributeName) : undefined);
+                        continue;
+                    }
+                    let closest = findClosestEntangledAncestor(elem);
+                    if (closest) {
+                        if (elementHasEntangledDescendants(elem)) {
+                            let grandParent = (getScopeForElement(closest) as any).$parent as IPublicScope;
+                            tearDownElementScope(closest);
+                            buildScopes(closest, grandParent);
+                        } else {
+                            let old = getScopeForElement(elem);
+                            if (old) {
+                                tearDownElementScope(elem);
+                            }
+                            buildScopes(elem, getScopeForElement(closest));                            
+                        }
+                    } else {
+                        let old = getScopeForElement(elem);
+                        if (old) {
+                            tearDownElementScope(elem);
+                            buildScopes(elem, globalScope);
+                        } else {
+                            build();
+                            return;
+                        }
+                        
+                    }
+                    continue;
                 }
                 if (anyNodeIsQe(mr.addedNodes) || anyNodeIsQe(mr.removedNodes)) {
                     build();
