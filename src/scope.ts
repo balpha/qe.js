@@ -1,51 +1,6 @@
 
-declare interface ObjectConstructor {
-    setPrototypeOf(obj: Object, proto: Object): void;
-}
 
-declare interface Function {
-    displayName: string;
-    name: string;
-}
-
-declare interface Window {
-    Scope(parent?: IPublicScope, name?: string): IPublicScope;
-    Expression: any;//FIXME
-}
-
-interface ISetter<T> {
-    (value: T): void
-}
-
-interface IStringDict {
-    [p: string]: string;
-}
-
-interface IDelayedProperty<T> {
-    attach(setter: (v: T) => void): void;
-    detach(): void;
-    getCurrentValue(): T;
-}
-
-interface IPublicScopeController {
-    set(name: string, value: any): void;
-    multiSet(name: string, value: any, token?: number) : number;
-    unMultiSet(name: string, token: number): void;
-    createDelayed<T>(name: string, attach: (setter: ((v: T) => void)) => void, detach: () => void, getCurrentValue: () => T): void;
-    tearDown(): void;
-    _id: number;
-}
-
-interface IPublicScope {
-    __qe_controller: IPublicScopeController;
-}
-
-interface IDestroyable {
-    destroy(): void;
-}
-
-
-namespace QE {
+(function() {
     
     var nextId = 1;
     var scopes: { [id: number] : ScopePrivate } = {};
@@ -345,9 +300,7 @@ namespace QE {
         
     }
     
-    
     type AccessRecord = [ScopePrivate, string] | [ScopePrivate, string|null, ScopePrivate];
-    
     var accessStack: AccessRecord[][] = [];
     
     function recordAccess() {
@@ -397,16 +350,16 @@ namespace QE {
         exceptionLogTimeout = null;
     }
     
-    export function onException(f: (expression: string, exception: Error) => void) {
+    QE.onException = function(f: (expression: string, exception: Error) => void) {
         exceptionLoggers.push(f);
     }
-    export function logPendingExceptions() {
+    QE.logPendingExceptions = function() {
         if (exceptionLogTimeout) {
             clearTimeout(exceptionLogTimeout);
             outputLog();
         }
     }
-    export function logExceptionsToConsole(yesno: boolean) {
+    QE.logExceptionsToConsole = function(yesno: boolean) {
         doLogExceptionsToConsole = yesno;
     }
     
@@ -507,7 +460,7 @@ namespace QE {
     
     // ----------------------------------
     
-    export function Scope(parent?: IPublicScope, name?: string) : IPublicScope {
+    function Scope(parent?: IPublicScope, name?: string) : IPublicScope {
         var privateParent = null;
         if (parent) {
             privateParent = getPrivateScopeFor(parent);
@@ -515,12 +468,13 @@ namespace QE {
         var newScope = new ScopePrivate(privateParent, name);
         return newScope._publicScope;
     }
+    QE.Scope = Scope;
     
-    export function Expression<T>(exp: string, scope: IPublicScope, callback: (v: T) => void): void;
-    export function Expression<T>(exp: string, scope: IPublicScope, callback: (v: T) => void, onDestroy: () => void): IDestroyable;
-    export function Expression<T>(exp: string, scope: IPublicScope, callback: (v: T) => void, onDestroy?: () => void): IDestroyable | void {
+    function Expression<T>(exp: string, scope: IPublicScope, callback: (v: T) => void): void;
+    function Expression<T>(exp: string, scope: IPublicScope, callback: (v: T) => void, onDestroy: () => void): IDestroyable;
+    function Expression<T>(exp: string, scope: IPublicScope, callback: (v: T) => void, onDestroy?: () => void): IDestroyable | void {
         return ExpressionPrivate(exp, getPrivateScopeFor(scope), callback, onDestroy);
     }
+    QE.Expression = Expression;
     
-    
-}
+})();

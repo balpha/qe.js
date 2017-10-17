@@ -4,9 +4,11 @@
         "removeComments": true,
         "target": "es5",
         "newLine": "lf",
-        "outFile": "../dist/qe.js"
+        "outFile": "../build/_qe.js"
     },
     "include": [
+        "types.d.ts",
+        "export.ts",
         "scope.ts",
         "dom.ts"
     ]

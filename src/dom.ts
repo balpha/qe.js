@@ -1,8 +1,7 @@
-///<reference path="scope.ts"/>
-namespace QE {
+
     var Scope = QE.Scope;
     var Expression = QE.Expression;
-    
+
     var globalScope: IPublicScope;
     var MODIFIED_EVENT = "qe:modified-programmatically";
     var EDGE = /Edge/.test(navigator.userAgent);
@@ -461,7 +460,7 @@ namespace QE {
         
     }
     
-    export function init() {
+    QE.init = function() {
         var mo = new MutationObserver(function (mrs) {
             for (let i = 0; i < mrs.length; i++) {
                 let mr = mrs[i];
@@ -487,4 +486,3 @@ namespace QE {
         monkeypatchInputs();
         build();
     }
-}
