@@ -468,6 +468,19 @@
             done(ok);
         }
     });
+    
+    TEST({
+        name: "non-string property attributes",
+        body: [
+            '<body qe qe.number-p-a="42" qe.string-p-a="42 " qe.bool-p-a="false">',
+            '<p qe qe-tunnel="numberPA+2 into fortyfour; stringPA+2 into concat; boolPA ? \'bad\' : \'good\' into notbad">',
+            '<span qe qe:one="fortyfour" qe:two="concat" qe:three="notbad"></span>',
+            '</p>',
+            '</body>'].join(""),
+        run: function (done) {
+            done(tools.attrIs("span", "one", "44") && tools.attrIs("span", "two", "42 2") && tools.attrIs("span", "three", "good"));
+        }
+    });    
     window.QETest = QETest;
     window.QETestResult = QETestResult;
 })();

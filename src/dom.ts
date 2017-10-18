@@ -203,6 +203,19 @@
         return s.replace(/[A-Z]/g, function (c) { return "-" + c.toLowerCase(); });
     }
     
+    function propertyAttributeValue(s: string): string | number | boolean {
+        if (s === "true") {
+            return true;
+        } else if (s === "false") {
+            return false;
+        }
+        var asNumber = parseFloat(s);
+        if (isFinite(asNumber) && "" + asNumber === s) {
+            return asNumber;
+        }
+        return s;
+    }
+    
     function buildScopes(elem: HTMLElement, parentScope: IPublicScope) {
         var nextParentScope = parentScope;
         if (elem.hasAttribute("qe")) {
@@ -214,7 +227,7 @@
                 let attr = attrs[i];
                 if (/^qe\./.test(attr.name)) {
                     let prop = unKebab(attr.name.substr(3));
-                    scope.__qe_controller.set(prop, attr.value);
+                    scope.__qe_controller.set(prop, propertyAttributeValue(attr.value));
                 } else if (/^qe:/.test(attr.name)) {
                     expressionAttribute(scope, elem, attr);
                 } else if (attr.name === "qe-tunnel") {
@@ -506,7 +519,7 @@
                 if (mr.type === "attributes" && /^qe(?:-tunnel$|\.|:|$)/.test(mr.attributeName) && mr.oldValue !== elem.getAttribute(mr.attributeName)) {
                     if (/^qe\./.test(mr.attributeName)) {
                         let prop = unKebab(mr.attributeName.substr(3));
-                        getScopeForElement(elem).__qe_controller.set(prop, elem.hasAttribute(mr.attributeName) ? elem.getAttribute(mr.attributeName) : undefined);
+                        getScopeForElement(elem).__qe_controller.set(prop, elem.hasAttribute(mr.attributeName) ? propertyAttributeValue(elem.getAttribute(mr.attributeName)) : undefined);
                         continue;
                     }
                     let closest = findClosestEntangledAncestor(elem);
