@@ -430,7 +430,7 @@
                 noException(id);
             }
             var newDependencies = endRecordAccess();
-            if (threw||true) { // the dependency might not have been defined yet -- must watch for everything for now; with Proxy this can become smarter
+            if (threw) {
                 newDependencies.push([scope, null]);                
             }
             if (myDependencies) for (let i = 0; i < myDependencies.length; i++) {

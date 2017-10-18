@@ -363,7 +363,7 @@
                     noException(id);
                 }
                 var newDependencies = endRecordAccess();
-                if (threw || true) {
+                if (threw) {
                     newDependencies.push([scope, null]);
                 }
                 if (myDependencies)
