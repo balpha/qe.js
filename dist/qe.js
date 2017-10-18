@@ -1,5 +1,5 @@
-(function(){
-"use strict";
+(function(){ 
+"use strict"; 
     var QE = window.QE = {};
     (function () {
         var nextId = 1;
@@ -574,7 +574,7 @@
                 }
                 previousClassesList = newClassesList;
             });
-            mo.observe(elem, { attributeFilter: ["class"] });
+            mo.observe(elem, { attributes: true, attributeFilter: ["class"] });
             setter(classes);
         };
         var detach = function () {
@@ -975,4 +975,4 @@
         monkeypatchInputs();
         build();
     };
-})();
+})(); 

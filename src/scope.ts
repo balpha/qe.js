@@ -1,3 +1,4 @@
+///<reference path="export.ts"/>
 
 
 (function() {

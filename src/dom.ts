@@ -1,3 +1,4 @@
+///<reference path="scope.ts"/>
 
     var Scope = QE.Scope;
     var Expression = QE.Expression;
@@ -184,7 +185,7 @@
                 previousClassesList = newClassesList;
                 // note that we're not calling setter
             });
-            mo.observe(elem, { attributeFilter: ["class"] });
+            mo.observe(elem, { attributes: true, attributeFilter: ["class"] });
             setter(classes);
         };
         
