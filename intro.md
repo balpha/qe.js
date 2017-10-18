@@ -53,7 +53,7 @@ So I started thinking about creating a library that gives us nice things. In ord
 	everywhere, we're just trading one JS boilerplate for another, and we have to make sure to call the function every time we *might* add HTML that requires it.
 - It should embrace the DOM. Creating event handlers, setting `$(".my-input").val(newtext)`, etc., all the things we do in our vanilla JS approach to client-side code should continue to work without us having to work around things.
 
-So below I'm going to descibe what I came up with.
+So below I'm going to describe what I came up with.
 
 ### Looking for feedback
 
@@ -149,7 +149,7 @@ The scope of any entangled element has a couple of built-in properties:
 : is the actual HTML element that this scope belongs to.
 
 `$attributes`
-: allows you access the HTML element's attributes. For example, `$element.getAttribute("id")` and `$attributes.id` are *almost* equivalent -- however, if the `id` attribute changes at any time, QE has to reevalute any expressions that refer to this attribute. When you use the any non-QE method to get a value, like the element's `getAttribute` method, then QE doesn't know that the expression depends on the attribute. If you use `$attributes.id` instead, QE knows to re-evalute the expression when the `id` attribute changes.
+: allows you access the HTML element's attributes. For example, `$element.getAttribute("id")` and `$attributes.id` are *almost* equivalent -- however, if the `id` attribute changes at any time, QE has to re-evaluate any expressions that refer to this attribute. When you use the any non-QE method to get a value, like the element's `getAttribute` method, then QE doesn't know that the expression depends on the attribute. If you use `$attributes.id` instead, QE knows to re-evaluate the expression when the `id` attribute changes.
 
 : If the attribute contains a dash ("kebab case"), you can refer to it by its original name or by its camel case conversion. So `$attributes["aria-label"]` and `$attributes.ariaLabel` are equivalent.
 
