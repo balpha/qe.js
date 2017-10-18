@@ -545,6 +545,58 @@
         };
         scope.__qe_controller.createDelayed("$attributes", attach, detach, getCurrentValue);
     }
+    function addClass(elem, scope) {
+        var mo;
+        var classes;
+        var previousClassesList;
+        function setClass(cls, val) {
+            classes.__qe_controller.set(cls, val);
+            var ukcls = unKebab(cls);
+            if (cls !== ukcls) {
+                classes.__qe_controller.set(ukcls, val);
+            }
+        }
+        var attach = function (setter) {
+            getCurrentValue();
+            mo = new MutationObserver(function (mrs) {
+                var newClassesList = Array.prototype.slice.call(elem.classList);
+                for (var _i = 0, previousClassesList_1 = previousClassesList; _i < previousClassesList_1.length; _i++) {
+                    var cls = previousClassesList_1[_i];
+                    if (newClassesList.indexOf(cls) < 0) {
+                        setClass(cls, undefined);
+                    }
+                }
+                for (var _a = 0, newClassesList_1 = newClassesList; _a < newClassesList_1.length; _a++) {
+                    var cls = newClassesList_1[_a];
+                    if (previousClassesList.indexOf(cls) < 0) {
+                        setClass(cls, true);
+                    }
+                }
+                previousClassesList = newClassesList;
+            });
+            mo.observe(elem, { attributeFilter: ["class"] });
+            setter(classes);
+        };
+        var detach = function () {
+            if (mo)
+                mo.disconnect();
+            if (classes)
+                classes.__qe_controller.tearDown();
+            mo = classes = previousClassesList = null;
+        };
+        var getCurrentValue = function () {
+            if (!classes) {
+                classes = Scope();
+                previousClassesList = Array.prototype.slice.call(elem.classList);
+                for (var _i = 0, previousClassesList_2 = previousClassesList; _i < previousClassesList_2.length; _i++) {
+                    var cls = previousClassesList_2[_i];
+                    setClass(cls, true);
+                }
+            }
+            return classes;
+        };
+        scope.__qe_controller.createDelayed("$class", attach, detach, getCurrentValue);
+    }
     var scopes = {};
     function getScopeForElement(elem) {
         return scopes[elem.__qe_scope_id];
@@ -573,6 +625,7 @@
             addValue(elem, scope);
         }
         addAttributes(elem, scope);
+        addClass(elem, scope);
         scope.__qe_controller.set("$element", elem);
         elem.__qe_scope_id = scope.__qe_controller._id;
         scopes[scope.__qe_controller._id] = scope;

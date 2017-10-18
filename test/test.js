@@ -480,6 +480,36 @@
         run: function (done) {
             done(tools.attrIs("span", "one", "44") && tools.attrIs("span", "two", "42 2") && tools.attrIs("span", "three", "good"));
         }
+    });
+    TEST({
+        name: "$class",
+        body: [
+            '<body qe qe:x="($class.firstClass ? 1 : 0) + ($class[\'second-class\'] ? 2 : 0)">',
+            '</body>'].join(""),
+        run: function (done) {
+            var ok = tools.attrIs("body", "x", "0");
+            document.body.classList.add("something");
+            setTimeout(function () {
+                ok = ok && tools.attrIs("body", "x", "0");
+                document.body.classList.add("first-class");
+                setTimeout(function () {
+                    ok = ok && tools.attrIs("body", "x", "1");
+                    document.body.className += " second-class";
+                    setTimeout(function () {
+                        ok = ok && tools.attrIs("body", "x", "3");
+                        document.body.classList.remove("first-class");
+                        setTimeout(function () {
+                            ok = ok && tools.attrIs("body", "x", "2");
+                            document.body.removeAttribute("class");
+                            setTimeout(function () {
+                                ok = ok && tools.attrIs("body", "x", "0");
+                                done(ok);
+                            }, 0);                            
+                        }, 0);
+                    }, 0);
+                }, 0);
+            });
+        }
     });    
     window.QETest = QETest;
     window.QETestResult = QETestResult;

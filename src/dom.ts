@@ -155,6 +155,61 @@
         scope.__qe_controller.createDelayed("$attributes", attach, detach, getCurrentValue);
         
     }
+
+    function addClass(elem: HTMLElement, scope: IPublicScope) {
+        var mo: MutationObserver;
+        var classes: IPublicScope;
+        var previousClassesList: string[];
+        function setClass(cls: string, val: boolean) {
+            classes.__qe_controller.set(cls, val);
+            let ukcls = unKebab(cls);
+            if (cls !== ukcls) {
+                classes.__qe_controller.set(ukcls, val);
+            }            
+        }
+        var attach = function (setter: ISetter<IPublicScope>) {
+            getCurrentValue();
+            mo = new MutationObserver(function (mrs) {
+                var newClassesList = Array.prototype.slice.call(elem.classList);
+                for (let cls of previousClassesList) {
+                    if (newClassesList.indexOf(cls) < 0) {
+                        setClass(cls, undefined);
+                    }
+                }
+                for (let cls of newClassesList) {
+                    if (previousClassesList.indexOf(cls) < 0) {
+                        setClass(cls, true);
+                    }
+                }
+                previousClassesList = newClassesList;
+                // note that we're not calling setter
+            });
+            mo.observe(elem, { attributeFilter: ["class"] });
+            setter(classes);
+        };
+        
+        var detach = function () {
+            if (mo)
+                mo.disconnect();
+            if (classes)
+                classes.__qe_controller.tearDown();
+            mo = classes = previousClassesList = null;
+        };
+        
+        var getCurrentValue = function () {
+            if (!classes) {
+                classes = Scope();
+                previousClassesList = Array.prototype.slice.call(elem.classList);
+                for (let cls of previousClassesList) {
+                    setClass(cls, true);
+                }
+            }
+            return classes;
+        };
+        
+        scope.__qe_controller.createDelayed("$class", attach, detach, getCurrentValue);
+        
+    }
     
     var scopes: { [i: number]: IPublicScope } = {};
     
@@ -189,6 +244,7 @@
             addValue(elem, scope);
         }
         addAttributes(elem, scope);
+        addClass(elem, scope);
         scope.__qe_controller.set("$element", elem);
         elem.__qe_scope_id = scope.__qe_controller._id;
         scopes[scope.__qe_controller._id] = scope;

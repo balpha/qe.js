@@ -153,6 +153,9 @@ The scope of any entangled element has a couple of built-in properties:
 
 : If the attribute contains a dash ("kebab case"), you can refer to it by its original name or by its camel case conversion. So `$attributes["aria-label"]` and `$attributes.ariaLabel` are equivalent.
 
+`$class`
+: reflects the element's CSS classes. `$class.highlight` is `true` or `undefined`, depending on whether the element has class `highlight` or not. Classes in kebab case can also be refered to in camel case, so `$class.isSelected` and `$class["is-selected"]` both work. Note that because CSS classes are case sensitive, an element `<div class="isSelected is-selected">` in fact has two distinct classes, and `$class` will *not* do the right thing here. On the off-chance that you actually have such a case (you shouldn't!), you will need to parse `$attributes.class` instead.
+
 `$global`
 : is the ancestor scope of all element scopes.
 
