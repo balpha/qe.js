@@ -7,10 +7,13 @@
     var MODIFIED_EVENT = "qe:modified-programmatically";
     var EDGE = /Edge/.test(navigator.userAgent);
     
+    var scopes: { [i: number]: IPublicScope };
+
     function build() {
         if (globalScope)
             globalScope.__qe_controller.tearDown();
         globalScope = Scope();
+        scopes = {}; // FIXME: need to remove __qe_scope_id from all elements (but note that the scopes themselves aren't leaking because we tore down the global)
         globalScope.__qe_controller.set("$global", globalScope);
         buildScopes(document.body, globalScope);
     }
@@ -211,8 +214,6 @@
         scope.__qe_controller.createDelayed("$class", attach, detach, getCurrentValue);
         
     }
-    
-    var scopes: { [i: number]: IPublicScope } = {};
     
     function getScopeForElement(elem: HTMLElement): IPublicScope {
         return scopes[elem.__qe_scope_id];
@@ -494,18 +495,15 @@
         
     }
     
-    function anyNodeIsQe(nodeList: NodeList) {
-        for (let i = 0; i<nodeList.length; i++) {
-            let node = nodeList[i];
-            if (node.nodeType !== Node.ELEMENT_NODE)
-                continue;
-            if (!(node instanceof HTMLElement))
-                continue;
-            if (node.hasAttribute("qe"))
-                return true;
-            if (node.querySelector("*[qe]"))
-                return true;
-        }
+    function nodeOrDescendantIsQE(node: Node) {
+        if (node.nodeType !== Node.ELEMENT_NODE)
+            return false;
+        if (!(node instanceof HTMLElement))
+            return false;
+        if (node.hasAttribute("qe"))
+            return true;
+        if (node.querySelector("*[qe]"))
+            return true;
         return false;
     }
     
@@ -569,47 +567,71 @@
     }
     
     QE.init = function() {
+        
+        // returns false if a full rebuild was triggered
+        function handleChangedElement(elem: HTMLElement): boolean {
+            let closest = findClosestEntangledAncestor(elem);
+            if (closest) {
+                if (elementHasEntangledDescendants(elem)) {
+                    let grandParent = (getScopeForElement(closest) as any).$parent as IPublicScope;
+                    tearDownElementScope(closest);
+                    buildScopes(closest, grandParent);
+                } else {
+                    let old = getScopeForElement(elem);
+                    if (old) {
+                        tearDownElementScope(elem);
+                    }
+                    buildScopes(elem, getScopeForElement(closest));                            
+                }
+            } else {
+                let old = getScopeForElement(elem);
+                if (old) {
+                    tearDownElementScope(elem);
+                    buildScopes(elem, globalScope);
+                } else {
+                    build();
+                    return false;
+                }
+                
+            }
+            return true;
+        }
+        
         var mo = new MutationObserver(function (mrs) {
             for (let i = 0; i < mrs.length; i++) {
                 let mr = mrs[i];
-                let elem = mr.target as HTMLElement;
-                if (mr.type === "attributes" && /^qe(?:-tunnel$|\.|:|$)/.test(mr.attributeName) && mr.oldValue !== elem.getAttribute(mr.attributeName)) {
+                let target = mr.target as HTMLElement;
+                if (mr.type === "attributes" && /^qe(?:-tunnel$|\.|:|$)/.test(mr.attributeName) && mr.oldValue !== target.getAttribute(mr.attributeName)) {
                     if (/^qe\./.test(mr.attributeName)) {
                         let prop = unKebab(mr.attributeName.substr(3));
-                        getScopeForElement(elem).__qe_controller.set(prop, elem.hasAttribute(mr.attributeName) ? propertyAttributeValue(elem.getAttribute(mr.attributeName)) : undefined);
+                        getScopeForElement(target).__qe_controller.set(prop, target.hasAttribute(mr.attributeName) ? propertyAttributeValue(target.getAttribute(mr.attributeName)) : undefined);
                         continue;
                     }
-                    let closest = findClosestEntangledAncestor(elem);
-                    if (closest) {
-                        if (elementHasEntangledDescendants(elem)) {
-                            let grandParent = (getScopeForElement(closest) as any).$parent as IPublicScope;
-                            tearDownElementScope(closest);
-                            buildScopes(closest, grandParent);
-                        } else {
-                            let old = getScopeForElement(elem);
-                            if (old) {
-                                tearDownElementScope(elem);
-                            }
-                            buildScopes(elem, getScopeForElement(closest));                            
-                        }
-                    } else {
-                        let old = getScopeForElement(elem);
-                        if (old) {
-                            tearDownElementScope(elem);
-                            buildScopes(elem, globalScope);
-                        } else {
-                            build();
-                            return;
-                        }
-                        
+                    if (handleChangedElement(target))
+                        continue;
+                    else
+                        return;
+                }
+                for (let j=0; j < mr.addedNodes.length; j++) {
+                    let elem = mr.addedNodes[j];
+                    if (!(elem instanceof HTMLElement)) {
+                        continue;
                     }
-                    continue;
+                    if (nodeOrDescendantIsQE(elem)) {
+                        let parentElem = findClosestEntangledAncestor(elem);
+                        buildScopes(elem, parentElem ? getScopeForElement(parentElem) : globalScope);
+                    }
                 }
-                if (anyNodeIsQe(mr.addedNodes) || anyNodeIsQe(mr.removedNodes)) {
-                    build();
-                    return;
+                for (let j=0; j < mr.removedNodes.length; j++) {
+                    let elem = mr.removedNodes[j];
+                    if (!(elem instanceof HTMLElement)) {
+                        continue;
+                    }
+                    if (elem.hasOwnProperty("__qe_scope_id") || elementHasEntangledDescendants(elem)) {
+                        build();
+                        return;
+                    }
                 }
-                
             }
             
         });
