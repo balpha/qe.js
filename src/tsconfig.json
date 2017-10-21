@@ -8,6 +8,7 @@
     },
     "include": [
         "types.d.ts",
+        "tools.tst",
         "export.ts",
         "scope.ts",
         "dom.ts"

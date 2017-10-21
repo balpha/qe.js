@@ -1,19 +1,26 @@
 (function(){
 "use strict";
     var QE = window.QE = {};
+    var _hasOwnProperty = Object.prototype.hasOwnProperty;
+    function objectHasOwnProperty(obj, prop) {
+        return _hasOwnProperty.call(obj, prop);
+    }
+    function newObject() {
+        return Object.create(null);
+    }
     (function () {
         var nextId = 1;
-        var scopes = {};
+        var scopes = newObject();
         var ScopePrivate = (function () {
             function ScopePrivate(parent, name) {
-                this._data = {};
+                this._data = newObject();
                 this._children = [];
                 this._parent = parent;
-                this._dependents = {};
+                this._dependents = newObject();
                 this._id = nextId;
-                this._delayedProps = {};
+                this._delayedProps = newObject();
                 this._name = name;
-                this._valueStacks = {};
+                this._valueStacks = newObject();
                 nextId++;
                 scopes[this._id] = this;
                 if (parent) {
@@ -21,9 +28,9 @@
                     this._parent.childAdded(this);
                 }
                 else {
-                    this._publicScope = Object.create(Object);
+                    this._publicScope = Object.create(null);
                 }
-                this._publicScope.__qe_controller = {};
+                this._publicScope.__qe_controller = newObject();
                 Object.defineProperty(this._publicScope.__qe_controller, "_id", {
                     value: this._id
                 });
@@ -62,9 +69,11 @@
                     }, "create");
                 };
                 this._publicScope.__qe_controller.set("$self", this._publicScope);
-                this._publicScope.__qe_controller.set("$parent", Object.getPrototypeOf(this._publicScope));
-                if (parent && parent._name) {
-                    this._publicScope.__qe_controller.set(parent._name, Object.getPrototypeOf(this._publicScope));
+                if (parent) {
+                    this._publicScope.__qe_controller.set("$parent", Object.getPrototypeOf(this._publicScope));
+                    if (parent._name) {
+                        this._publicScope.__qe_controller.set(parent._name, Object.getPrototypeOf(this._publicScope));
+                    }
                 }
                 this._publicScope.__qe_controller.tearDown = function () {
                     that.tearDown();
@@ -78,7 +87,7 @@
                 var that = this;
                 var shadowing = false;
                 var attached = false;
-                if (!this._publicScope.hasOwnProperty(name)) {
+                if (!objectHasOwnProperty(this._publicScope, name)) {
                     shadowing = name in this._publicScope;
                     if (delayed === "create") {
                         this._delayedProps[name] = val;
@@ -195,7 +204,7 @@
                 if (!this._tearingDown)
                     this.tearingDown();
                 var data = this._data;
-                this._data = {};
+                this._data = newObject();
                 if (this._parent) {
                     Object.setPrototypeOf(this._publicScope, Object.prototype);
                     var parent_1 = this._parent;
@@ -206,19 +215,17 @@
                 for (var i = 0; i < children.length; i++) {
                     children[i].tearDown();
                 }
-                for (var key in this._dependents)
-                    if (this._dependents.hasOwnProperty(key)) {
-                        var val = data[key];
-                        var deps = this._dependents[key];
-                        for (var i = 0; i < deps.length; i++) {
-                            deps[i]();
-                        }
+                for (var key in this._dependents) {
+                    var val = data[key];
+                    var deps = this._dependents[key];
+                    for (var i = 0; i < deps.length; i++) {
+                        deps[i]();
                     }
+                }
                 this._dependents = null;
-                for (var key in this._delayedProps)
-                    if (this._delayedProps.hasOwnProperty(key)) {
-                        this._delayedProps[key].detach();
-                    }
+                for (var key in this._delayedProps) {
+                    this._delayedProps[key].detach();
+                }
                 this._delayedProps = null;
                 this._valueStacks = null;
                 delete scopes[this._id];
@@ -232,7 +239,7 @@
             };
             ScopePrivate.prototype.notifyShadowing = function (name) {
                 var s = this._parent;
-                while (!s._publicScope.hasOwnProperty(name)) {
+                while (!objectHasOwnProperty(s._publicScope, name)) {
                     s = s._parent;
                 }
                 s.beingShadowed(name);
@@ -264,7 +271,7 @@
             return null;
         }
         var nextExpressionId = 1;
-        var exceptions = {};
+        var exceptions = newObject();
         var exceptionLogTimeout;
         var exceptionLoggers = [];
         var doLogExceptionsToConsole = true;
@@ -283,14 +290,13 @@
             delete exceptions[expressionId];
         }
         function outputLog() {
-            for (var i in exceptions)
-                if (exceptions.hasOwnProperty(i)) {
-                    for (var _i = 0, exceptionLoggers_1 = exceptionLoggers; _i < exceptionLoggers_1.length; _i++) {
-                        var handler = exceptionLoggers_1[_i];
-                        handler.apply(null, exceptions[i]);
-                    }
+            for (var i in exceptions) {
+                for (var _i = 0, exceptionLoggers_1 = exceptionLoggers; _i < exceptionLoggers_1.length; _i++) {
+                    var handler = exceptionLoggers_1[_i];
+                    handler.apply(null, exceptions[i]);
                 }
-            exceptions = {};
+            }
+            exceptions = newObject();
             exceptionLogTimeout = null;
         }
         QE.onException = function (f) {
@@ -416,7 +422,7 @@
         if (globalScope)
             globalScope.__qe_controller.tearDown();
         globalScope = Scope();
-        scopes = {};
+        scopes = newObject();
         globalScope.__qe_controller.set("$global", globalScope);
         buildScopes(document.body, globalScope);
     }
@@ -727,7 +733,7 @@
             else if (typeof val !== "string") {
                 if (typeof (val) === "object") {
                     for (var cls in val)
-                        if (val.hasOwnProperty(cls)) {
+                        if (objectHasOwnProperty(val, cls)) {
                             if (val[cls]) {
                                 if (!elem.classList.contains(cls)) {
                                     if (!removed[cls])
@@ -744,15 +750,15 @@
                             }
                         }
                     for (var cls in added)
-                        if (added.hasOwnProperty(cls)) {
-                            if (!val.hasOwnProperty(cls)) {
+                        if (objectHasOwnProperty(added, cls)) {
+                            if (!objectHasOwnProperty(val, cls)) {
                                 elem.classList.remove(cls);
                                 delete added[cls];
                             }
                         }
                     for (var cls in removed)
-                        if (removed.hasOwnProperty(cls)) {
-                            if (!val.hasOwnProperty(cls)) {
+                        if (objectHasOwnProperty(removed, cls)) {
+                            if (!objectHasOwnProperty(val, cls)) {
                                 elem.classList.add(cls);
                                 delete removed[cls];
                             }
@@ -772,7 +778,7 @@
             else if (typeof val !== "string") {
                 if (typeof (val) === "object") {
                     for (var prop in val)
-                        if (val.hasOwnProperty(prop)) {
+                        if (objectHasOwnProperty(val, prop)) {
                             elem.style.setProperty(kebab(prop), val[prop]);
                         }
                 }

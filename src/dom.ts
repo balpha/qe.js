@@ -13,7 +13,7 @@
         if (globalScope)
             globalScope.__qe_controller.tearDown();
         globalScope = Scope();
-        scopes = {}; // FIXME: need to remove __qe_scope_id from all elements (but note that the scopes themselves aren't leaking because we tore down the global)
+        scopes = newObject(); // FIXME: need to remove __qe_scope_id from all elements (but note that the scopes themselves aren't leaking because we tore down the global)
         globalScope.__qe_controller.set("$global", globalScope);
         buildScopes(document.body, globalScope);
     }
@@ -351,7 +351,7 @@
                 elem.removeAttribute(actualAttr);
             } else if (typeof val !== "string") {
                 if (typeof(val) === "object") {
-                    for (let cls in val) if (val.hasOwnProperty(cls)) {
+                    for (let cls in val) if (objectHasOwnProperty(val, cls)) {
                         if ((val as {[p:string]:any})[cls]) {
                             if (!elem.classList.contains(cls)) {
                                 if (!removed[cls])
@@ -366,14 +366,14 @@
                             }
                         }
                     }
-                    for (let cls in added) if (added.hasOwnProperty(cls)) {
-                        if (!val.hasOwnProperty(cls)) {
+                    for (let cls in added) if (objectHasOwnProperty(added, cls)) {
+                        if (!objectHasOwnProperty(val, cls)) {
                             elem.classList.remove(cls);
                             delete added[cls];
                         }
                     }
-                    for (let cls in removed) if (removed.hasOwnProperty(cls)) {
-                        if (!val.hasOwnProperty(cls)) {
+                    for (let cls in removed) if (objectHasOwnProperty(removed, cls)) {
+                        if (!objectHasOwnProperty(val, cls)) {
                             elem.classList.add(cls);
                             delete removed[cls];
                         }
@@ -391,7 +391,7 @@
                 elem.removeAttribute(actualAttr);
             } else if (typeof val !== "string") {
                 if (typeof(val) === "object") {
-                    for (let prop in val) if (val.hasOwnProperty(prop)) {
+                    for (let prop in val) if (objectHasOwnProperty(val, prop)) {
                         elem.style.setProperty(kebab(prop), (val as IStringDict)[prop]);
                     }
                 }

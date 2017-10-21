@@ -1,11 +1,12 @@
 ///<reference path="export.ts"/>
+///<reference path="tools.ts"/>
 
 
 (function() {
     
     var nextId = 1;
-    var scopes: { [id: number] : ScopePrivate } = {};
-    
+    var scopes: { [id: number] : ScopePrivate } = newObject();
+
     class ScopePrivate {
         
         _data: { [name: string] : any };
@@ -21,23 +22,23 @@
         
         constructor(parent?: ScopePrivate, name?: string) {
         
-            this._data = {};
+            this._data = newObject();
             this._children = [];
             this._parent = parent;
-            this._dependents = {}; // keys are property names
+            this._dependents = newObject(); // keys are property names
             this._id = nextId;
-            this._delayedProps = {};
+            this._delayedProps = newObject();
             this._name = name;
-            this._valueStacks = {};
+            this._valueStacks = newObject();
             nextId++;
             scopes[this._id] = this;
             if (parent) {
                 this._publicScope = Object.create(parent._publicScope);
                 this._parent.childAdded(this);
             } else {
-                this._publicScope = Object.create(Object);
+                this._publicScope = Object.create(null);
             }
-            this._publicScope.__qe_controller = {} as IPublicScopeController;
+            this._publicScope.__qe_controller = newObject() as IPublicScopeController;
             Object.defineProperty(this._publicScope.__qe_controller, "_id", {
                 value: this._id
             });
@@ -77,9 +78,12 @@
                 }, "create");
             };
             this._publicScope.__qe_controller.set("$self", this._publicScope);
-            this._publicScope.__qe_controller.set("$parent", Object.getPrototypeOf(this._publicScope));
-            if (parent && parent._name) {
-                this._publicScope.__qe_controller.set(parent._name, Object.getPrototypeOf(this._publicScope));
+            
+            if (parent) {
+                this._publicScope.__qe_controller.set("$parent", Object.getPrototypeOf(this._publicScope));
+                if (parent._name) {
+                    this._publicScope.__qe_controller.set(parent._name, Object.getPrototypeOf(this._publicScope));
+                }
             }
             this._publicScope.__qe_controller.tearDown = function () {
                 that.tearDown();
@@ -103,7 +107,7 @@
             var shadowing = false;
             var attached = false; // only interesting for delayed
             
-            if (!this._publicScope.hasOwnProperty(name)) {
+            if (!objectHasOwnProperty(this._publicScope, name)) {
                 shadowing = name in this._publicScope;
                 
                 if (delayed === "create") {
@@ -233,7 +237,7 @@
                 this.tearingDown();
             
             var data = this._data;
-            this._data = {};
+            this._data = newObject();
             
             if (this._parent) {
                 Object.setPrototypeOf(this._publicScope, Object.prototype);
@@ -248,7 +252,7 @@
                 children[i].tearDown();
             }
             
-            for (let key in this._dependents) if (this._dependents.hasOwnProperty(key)) {
+            for (let key in this._dependents) {
                 let val = data[key];
                 let deps = this._dependents[key];
                 for (let i = 0; i < deps.length; i++) {
@@ -257,7 +261,7 @@
             }
             this._dependents = null;
             
-            for (let key in this._delayedProps) if (this._delayedProps.hasOwnProperty(key)) {
+            for (let key in this._delayedProps) {
                 this._delayedProps[key].detach();
             }
             this._delayedProps = null;
@@ -278,7 +282,7 @@
         notifyShadowing(name: string) {
             //console.log(name,"is now being shadowed in", this);
             var s = this._parent;
-            while (!s._publicScope.hasOwnProperty(name)) {
+            while (!objectHasOwnProperty(s._publicScope, name)) {
                 s = s._parent;
             }
             s.beingShadowed(name);
@@ -323,7 +327,7 @@
     // ----------------------------------
     
     var nextExpressionId = 1;
-    var exceptions: { [id: number]: [string, Error] } = {};
+    var exceptions: { [id: number]: [string, Error] } = newObject();
     var exceptionLogTimeout: number;
     var exceptionLoggers: ((expression: string, exception: Error) => void)[] = [];
     var doLogExceptionsToConsole = true;
@@ -342,12 +346,12 @@
         delete exceptions[expressionId];
     }
     function outputLog() {
-        for (let i in exceptions) if (exceptions.hasOwnProperty(i)) {
+        for (let i in exceptions) {
             for (let handler of exceptionLoggers) {
                 handler.apply(null, exceptions[i]);
             }
         }
-        exceptions = {};
+        exceptions = newObject();
         exceptionLogTimeout = null;
     }
     
