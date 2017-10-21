@@ -32,21 +32,26 @@
             this._valueStacks = newObject();
             nextId++;
             scopes[this._id] = this;
+            this._publicScope = newObject() as IPublicScope;
+            
             if (parent) {
-                this._publicScope = Object.create(parent._publicScope);
+                this._publicScope.scopeData = Object.create(parent._publicScope.scopeData);
                 this._parent.childAdded(this);
             } else {
-                this._publicScope = Object.create(null);
+                this._publicScope.scopeData = Object.create(null);
             }
-            this._publicScope.__qe_controller = newObject() as IPublicScopeController;
-            Object.defineProperty(this._publicScope.__qe_controller, "_id", {
+            this._publicScope.controller = newObject() as IPublicScopeController;
+            Object.defineProperty(this._publicScope.controller, "_id", {
+                value: this._id
+            });
+            Object.defineProperty(this._publicScope.scopeData, "__qe_scope_id", {
                 value: this._id
             });
             var that = this;
-            this._publicScope.__qe_controller.set = function<T>(name: string, value: T) {
+            this._publicScope.controller.set = function<T>(name: string, value: T) {
                 this.multiSet(name, value, 0);
             };
-            this._publicScope.__qe_controller.multiSet = function<T>(name: string, value: T, token?: number) { // token is optional
+            this._publicScope.controller.multiSet = function<T>(name: string, value: T, token?: number) { // token is optional
                 var stack: T[] = that._valueStacks[name];
                 if (!stack) {
                     stack = that._valueStacks[name] = [];
@@ -64,28 +69,28 @@
                 that.applyValueStack(name);
                 return token;
             };
-            this._publicScope.__qe_controller.unMultiSet = function(name: string, token: number) {
+            this._publicScope.controller.unMultiSet = function(name: string, token: number) {
                 var stack = that._valueStacks[name];
                 delete stack[token];
                 that.applyValueStack(name);
             };
 
-            this._publicScope.__qe_controller.createDelayed = function<T>(name: string, attach: (setter: ((v: T) => void)) => void, detach: () => void, getCurrentValue: () => T) {
+            this._publicScope.controller.createDelayed = function<T>(name: string, attach: (setter: ((v: T) => void)) => void, detach: () => void, getCurrentValue: () => T) {
                 that.set(name, {
                     attach: attach,
                     detach: detach,
                     getCurrentValue: getCurrentValue
                 }, "create");
             };
-            this._publicScope.__qe_controller.set("$self", this._publicScope);
+            this._publicScope.controller.set("$self", this._publicScope.scopeData);
             
             if (parent) {
-                this._publicScope.__qe_controller.set("$parent", Object.getPrototypeOf(this._publicScope));
+                this._publicScope.controller.set("$parent", Object.getPrototypeOf(this._publicScope.scopeData));
                 if (parent._name) {
-                    this._publicScope.__qe_controller.set(parent._name, Object.getPrototypeOf(this._publicScope));
+                    this._publicScope.controller.set(parent._name, Object.getPrototypeOf(this._publicScope.scopeData));
                 }
             }
-            this._publicScope.__qe_controller.tearDown = function () {
+            this._publicScope.controller.tearDown = function () {
                 that.tearDown();
             };
         }
@@ -107,8 +112,8 @@
             var shadowing = false;
             var attached = false; // only interesting for delayed
             
-            if (!objectHasOwnProperty(this._publicScope, name)) {
-                shadowing = name in this._publicScope;
+            if (!objectHasOwnProperty(this._publicScope.scopeData, name)) {
+                shadowing = name in this._publicScope.scopeData;
                 
                 if (delayed === "create") {
                     this._delayedProps[name] = val as IDelayedProperty<T>;
@@ -116,7 +121,7 @@
                     throw name + " is not a delayed property";
                 }
                 
-                Object.defineProperty(this._publicScope, name, {
+                Object.defineProperty(this._publicScope.scopeData, name, {
                     get: function () {
                         if (delayed === "create" && !attached) {
                             attached = true;
@@ -127,7 +132,7 @@
                             that._data[name] = (val as IDelayedProperty<T>).getCurrentValue();
                         }
                         var result = that._data[name];
-                        that.notifyAccessed(name, getPrivateScopeFor(result)); // getPrivateScopeFor returns null if result isn't a scope
+                        that.notifyAccessed(name, getPrivateScopeFor(getPublicScopeForData(result))); // getPrivateScopeFor(...) returns null if result isn't a scope
                         return result;
                     }
                 });
@@ -240,7 +245,7 @@
             this._data = newObject();
             
             if (this._parent) {
-                Object.setPrototypeOf(this._publicScope, Object.prototype);
+                Object.setPrototypeOf(this._publicScope.scopeData, Object.prototype);
                 let parent = this._parent;
                 this._parent = null;
                 parent.childRemoved(this);
@@ -282,7 +287,7 @@
         notifyShadowing(name: string) {
             //console.log(name,"is now being shadowed in", this);
             var s = this._parent;
-            while (!objectHasOwnProperty(s._publicScope, name)) {
+            while (!objectHasOwnProperty(s._publicScope.scopeData, name)) {
                 s = s._parent;
             }
             s.beingShadowed(name);
@@ -316,11 +321,20 @@
     }
     
     function getPrivateScopeFor(publicScope: IPublicScope | any) {
-        if (!(publicScope && publicScope.__qe_controller))
+        if (!(publicScope && publicScope.controller))
             return null;
-        var s = scopes[publicScope.__qe_controller._id];
+        var s = scopes[publicScope.controller._id];
         if (s && s._publicScope === publicScope)
             return s;
+        return null;
+    }
+    
+    function getPublicScopeForData(scopeData: IPublicScopeData): IPublicScope {
+        if (!(scopeData && scopeData.__qe_scope_id))
+            return null;
+        var s = scopes[scopeData.__qe_scope_id];
+        if (s && s._publicScope.scopeData === scopeData)
+            return s._publicScope;
         return null;
     }
     
@@ -373,7 +387,7 @@
     function ExpressionPrivate<T>(exp: string, scope: ScopePrivate, callback: (v: T) => void, onDestroy?: () => void): IDestroyable | void {
         var id = nextExpressionId;
         nextExpressionId++;
-        var func = new Function("scope", "with(scope){return " + exp +"}") as (s: IPublicScope) => T;
+        var func = new Function("scope", "with(scope){return " + exp +"}") as (s: { [p: string]: any }) => T;
         var value: T;
         var destroying = false;
         var onChange = function () {
@@ -424,7 +438,7 @@
             var newValue: T;
             var threw = false;
             try {
-                newValue = func(scope._publicScope);
+                newValue = func(scope._publicScope.scopeData);
             } catch (ex) {
                 //console.warn("expression", exp, "threw", ex, " -- returning undefined");
                 logException(ex, id, exp);
@@ -465,6 +479,92 @@
     
     // ----------------------------------
     
+    function TunnelPrivate<T>(scope: IPublicScope, definition: string, onDestroy?: () => void): IDestroyable | void {
+        var parts = definition.split(" into ");
+        if (parts.length != 2) {
+            throw "invalid syntax in tunnel expression " + definition; 
+        }
+        // FIXME: also check that there's only dot-lookup
+        
+        var exitAndCondition = parts[1].split(" if ");
+        
+        if (exitAndCondition.length > 2) {
+            throw "invalid syntax in tunnel expression " + definition; 
+        }
+        
+        var tunnelExit = exitAndCondition[0].trim();
+        var lastDot = tunnelExit.lastIndexOf(".");
+        var tunnelExitScopeExpr: string, tunnelExitProperty: string;
+        if (lastDot !== -1) {
+            tunnelExitScopeExpr = tunnelExit.substr(0, lastDot);
+        } else {
+            tunnelExitScopeExpr = "$self"; 
+        }
+        tunnelExitProperty = tunnelExit.substr(lastDot + 1);
+        var tunnelEntrance = parts[0];
+        var tunnelCondition = exitAndCondition[1];
+        
+        var tunnelExitScope: IPublicScope;
+        var tunnelValue: T;
+        var tunnelActive = !tunnelCondition;
+        var token: number;
+        var expressions: IDestroyable[] = [];
+        var doTunnel = function () {
+            if (tunnelExitScope) {
+                if (tunnelActive) {
+                    token = tunnelExitScope.controller.multiSet(tunnelExitProperty, tunnelValue, token);
+                } else if (token) {
+                    tunnelExitScope.controller.unMultiSet(tunnelExitProperty, token);
+                    token = null;
+                }
+            }
+        };
+        expressions.push(Expression<IPublicScopeData>(tunnelExitScopeExpr, scope, function (s) {
+            if (tunnelActive && tunnelExitScope) {
+                tunnelActive = false;
+                doTunnel();
+                tunnelActive = true;
+            }
+            tunnelExitScope = getPublicScopeForData(s);
+            doTunnel();
+        }, destroy));
+
+        if (tunnelCondition) {
+            expressions.push(Expression(tunnelCondition, scope, function(v) {
+                tunnelActive = !!v;
+                doTunnel();
+            }, destroy));
+        }
+        
+        expressions.push(Expression<T>(tunnelEntrance, scope, function (v) {
+            tunnelValue = v;
+            doTunnel();
+        }, destroy));
+        
+        function destroy() {
+            if (!expressions) { // already destroyed
+                return;
+            }
+            var oldExpressions = expressions;
+            expressions = null;
+            tunnelActive=false;
+            doTunnel();
+            for (let e of oldExpressions) {
+                e.destroy();
+            }
+            
+        }
+        
+        if (onDestroy) {
+            return {
+                destroy: destroy
+            };
+        }
+        
+    }
+        
+    // ----------------------------------
+    
     function Scope(parent?: IPublicScope, name?: string) : IPublicScope {
         var privateParent = null;
         if (parent) {
@@ -481,5 +581,12 @@
         return ExpressionPrivate(exp, getPrivateScopeFor(scope), callback, onDestroy);
     }
     QE.Expression = Expression;
+    
+    function Tunnel<T>(scope: IPublicScope, definition: string): void;
+    function Tunnel<T>(scope: IPublicScope, definition: string, onDestroy?: () => void): IDestroyable;
+    function Tunnel<T>(scope: IPublicScope, definition: string, onDestroy?: () => void): IDestroyable | void {
+        return TunnelPrivate<T>(scope, definition, onDestroy);
+    }
+    QE.Tunnel = Tunnel;
     
 })();

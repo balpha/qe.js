@@ -23,22 +23,26 @@
                 this._valueStacks = newObject();
                 nextId++;
                 scopes[this._id] = this;
+                this._publicScope = newObject();
                 if (parent) {
-                    this._publicScope = Object.create(parent._publicScope);
+                    this._publicScope.scopeData = Object.create(parent._publicScope.scopeData);
                     this._parent.childAdded(this);
                 }
                 else {
-                    this._publicScope = Object.create(null);
+                    this._publicScope.scopeData = Object.create(null);
                 }
-                this._publicScope.__qe_controller = newObject();
-                Object.defineProperty(this._publicScope.__qe_controller, "_id", {
+                this._publicScope.controller = newObject();
+                Object.defineProperty(this._publicScope.controller, "_id", {
+                    value: this._id
+                });
+                Object.defineProperty(this._publicScope.scopeData, "__qe_scope_id", {
                     value: this._id
                 });
                 var that = this;
-                this._publicScope.__qe_controller.set = function (name, value) {
+                this._publicScope.controller.set = function (name, value) {
                     this.multiSet(name, value, 0);
                 };
-                this._publicScope.__qe_controller.multiSet = function (name, value, token) {
+                this._publicScope.controller.multiSet = function (name, value, token) {
                     var stack = that._valueStacks[name];
                     if (!stack) {
                         stack = that._valueStacks[name] = [];
@@ -56,26 +60,26 @@
                     that.applyValueStack(name);
                     return token;
                 };
-                this._publicScope.__qe_controller.unMultiSet = function (name, token) {
+                this._publicScope.controller.unMultiSet = function (name, token) {
                     var stack = that._valueStacks[name];
                     delete stack[token];
                     that.applyValueStack(name);
                 };
-                this._publicScope.__qe_controller.createDelayed = function (name, attach, detach, getCurrentValue) {
+                this._publicScope.controller.createDelayed = function (name, attach, detach, getCurrentValue) {
                     that.set(name, {
                         attach: attach,
                         detach: detach,
                         getCurrentValue: getCurrentValue
                     }, "create");
                 };
-                this._publicScope.__qe_controller.set("$self", this._publicScope);
+                this._publicScope.controller.set("$self", this._publicScope.scopeData);
                 if (parent) {
-                    this._publicScope.__qe_controller.set("$parent", Object.getPrototypeOf(this._publicScope));
+                    this._publicScope.controller.set("$parent", Object.getPrototypeOf(this._publicScope.scopeData));
                     if (parent._name) {
-                        this._publicScope.__qe_controller.set(parent._name, Object.getPrototypeOf(this._publicScope));
+                        this._publicScope.controller.set(parent._name, Object.getPrototypeOf(this._publicScope.scopeData));
                     }
                 }
-                this._publicScope.__qe_controller.tearDown = function () {
+                this._publicScope.controller.tearDown = function () {
                     that.tearDown();
                 };
             }
@@ -87,15 +91,15 @@
                 var that = this;
                 var shadowing = false;
                 var attached = false;
-                if (!objectHasOwnProperty(this._publicScope, name)) {
-                    shadowing = name in this._publicScope;
+                if (!objectHasOwnProperty(this._publicScope.scopeData, name)) {
+                    shadowing = name in this._publicScope.scopeData;
                     if (delayed === "create") {
                         this._delayedProps[name] = val;
                     }
                     else if (delayed === "set") {
                         throw name + " is not a delayed property";
                     }
-                    Object.defineProperty(this._publicScope, name, {
+                    Object.defineProperty(this._publicScope.scopeData, name, {
                         get: function () {
                             if (delayed === "create" && !attached) {
                                 attached = true;
@@ -105,7 +109,7 @@
                                 that._data[name] = val.getCurrentValue();
                             }
                             var result = that._data[name];
-                            that.notifyAccessed(name, getPrivateScopeFor(result));
+                            that.notifyAccessed(name, getPrivateScopeFor(getPublicScopeForData(result)));
                             return result;
                         }
                     });
@@ -206,7 +210,7 @@
                 var data = this._data;
                 this._data = newObject();
                 if (this._parent) {
-                    Object.setPrototypeOf(this._publicScope, Object.prototype);
+                    Object.setPrototypeOf(this._publicScope.scopeData, Object.prototype);
                     var parent_1 = this._parent;
                     this._parent = null;
                     parent_1.childRemoved(this);
@@ -239,7 +243,7 @@
             };
             ScopePrivate.prototype.notifyShadowing = function (name) {
                 var s = this._parent;
-                while (!objectHasOwnProperty(s._publicScope, name)) {
+                while (!objectHasOwnProperty(s._publicScope.scopeData, name)) {
                     s = s._parent;
                 }
                 s.beingShadowed(name);
@@ -263,11 +267,19 @@
             return accessStack.pop();
         }
         function getPrivateScopeFor(publicScope) {
-            if (!(publicScope && publicScope.__qe_controller))
+            if (!(publicScope && publicScope.controller))
                 return null;
-            var s = scopes[publicScope.__qe_controller._id];
+            var s = scopes[publicScope.controller._id];
             if (s && s._publicScope === publicScope)
                 return s;
+            return null;
+        }
+        function getPublicScopeForData(scopeData) {
+            if (!(scopeData && scopeData.__qe_scope_id))
+                return null;
+            var s = scopes[scopeData.__qe_scope_id];
+            if (s && s._publicScope.scopeData === scopeData)
+                return s._publicScope;
             return null;
         }
         var nextExpressionId = 1;
@@ -358,7 +370,7 @@
                 var newValue;
                 var threw = false;
                 try {
-                    newValue = func(scope._publicScope);
+                    newValue = func(scope._publicScope.scopeData);
                 }
                 catch (ex) {
                     logException(ex, id, exp);
@@ -398,6 +410,81 @@
                 evalutating = false;
             }
         }
+        function TunnelPrivate(scope, definition, onDestroy) {
+            var parts = definition.split(" into ");
+            if (parts.length != 2) {
+                throw "invalid syntax in tunnel expression " + definition;
+            }
+            var exitAndCondition = parts[1].split(" if ");
+            if (exitAndCondition.length > 2) {
+                throw "invalid syntax in tunnel expression " + definition;
+            }
+            var tunnelExit = exitAndCondition[0].trim();
+            var lastDot = tunnelExit.lastIndexOf(".");
+            var tunnelExitScopeExpr, tunnelExitProperty;
+            if (lastDot !== -1) {
+                tunnelExitScopeExpr = tunnelExit.substr(0, lastDot);
+            }
+            else {
+                tunnelExitScopeExpr = "$self";
+            }
+            tunnelExitProperty = tunnelExit.substr(lastDot + 1);
+            var tunnelEntrance = parts[0];
+            var tunnelCondition = exitAndCondition[1];
+            var tunnelExitScope;
+            var tunnelValue;
+            var tunnelActive = !tunnelCondition;
+            var token;
+            var expressions = [];
+            var doTunnel = function () {
+                if (tunnelExitScope) {
+                    if (tunnelActive) {
+                        token = tunnelExitScope.controller.multiSet(tunnelExitProperty, tunnelValue, token);
+                    }
+                    else if (token) {
+                        tunnelExitScope.controller.unMultiSet(tunnelExitProperty, token);
+                        token = null;
+                    }
+                }
+            };
+            expressions.push(Expression(tunnelExitScopeExpr, scope, function (s) {
+                if (tunnelActive && tunnelExitScope) {
+                    tunnelActive = false;
+                    doTunnel();
+                    tunnelActive = true;
+                }
+                tunnelExitScope = getPublicScopeForData(s);
+                doTunnel();
+            }, destroy));
+            if (tunnelCondition) {
+                expressions.push(Expression(tunnelCondition, scope, function (v) {
+                    tunnelActive = !!v;
+                    doTunnel();
+                }, destroy));
+            }
+            expressions.push(Expression(tunnelEntrance, scope, function (v) {
+                tunnelValue = v;
+                doTunnel();
+            }, destroy));
+            function destroy() {
+                if (!expressions) {
+                    return;
+                }
+                var oldExpressions = expressions;
+                expressions = null;
+                tunnelActive = false;
+                doTunnel();
+                for (var _i = 0, oldExpressions_1 = oldExpressions; _i < oldExpressions_1.length; _i++) {
+                    var e = oldExpressions_1[_i];
+                    e.destroy();
+                }
+            }
+            if (onDestroy) {
+                return {
+                    destroy: destroy
+                };
+            }
+        }
         function Scope(parent, name) {
             var privateParent = null;
             if (parent) {
@@ -411,6 +498,10 @@
             return ExpressionPrivate(exp, getPrivateScopeFor(scope), callback, onDestroy);
         }
         QE.Expression = Expression;
+        function Tunnel(scope, definition, onDestroy) {
+            return TunnelPrivate(scope, definition, onDestroy);
+        }
+        QE.Tunnel = Tunnel;
     })();
     var Scope = QE.Scope;
     var Expression = QE.Expression;
@@ -420,10 +511,10 @@
     var scopes;
     function build() {
         if (globalScope)
-            globalScope.__qe_controller.tearDown();
+            globalScope.controller.tearDown();
         globalScope = Scope();
         scopes = newObject();
-        globalScope.__qe_controller.set("$global", globalScope);
+        globalScope.controller.set("$global", globalScope.scopeData);
         buildScopes(document.body, globalScope);
     }
     function addHover(elem, scope) {
@@ -456,7 +547,7 @@
             }
             return false;
         };
-        scope.__qe_controller.createDelayed(prop, attach, detach, getCurrentValue);
+        scope.controller.createDelayed(prop, attach, detach, getCurrentValue);
     }
     function addValue(elem, scope) {
         var onChange;
@@ -499,7 +590,7 @@
             }
             return elem.value;
         };
-        scope.__qe_controller.createDelayed("$value", attach, detach, getCurrenValue);
+        scope.controller.createDelayed("$value", attach, detach, getCurrenValue);
     }
     function addAttributes(elem, scope) {
         var mo;
@@ -512,27 +603,27 @@
                     var ukan = unKebab(an);
                     if (elem.hasAttribute(an)) {
                         var val = elem.getAttribute(an);
-                        attrs.__qe_controller.set(an, val);
+                        attrs.controller.set(an, val);
                         if (an !== ukan) {
-                            attrs.__qe_controller.set(ukan, an);
+                            attrs.controller.set(ukan, an);
                         }
                     }
                     else {
-                        attrs.__qe_controller.set(an, undefined);
+                        attrs.controller.set(an, undefined);
                         if (an !== ukan) {
-                            attrs.__qe_controller.set(ukan, undefined);
+                            attrs.controller.set(ukan, undefined);
                         }
                     }
                 }
             });
             mo.observe(elem, { attributes: true });
-            setter(attrs);
+            setter(attrs.scopeData);
         };
         var detach = function () {
             if (mo)
                 mo.disconnect();
             if (attrs)
-                attrs.__qe_controller.tearDown();
+                attrs.controller.tearDown();
             mo = attrs = null;
         };
         var getCurrentValue = function () {
@@ -543,25 +634,25 @@
                     var name_1 = attributes[i].name;
                     var ukname = unKebab(name_1);
                     var value = attributes[i].value;
-                    attrs.__qe_controller.set(name_1, value);
+                    attrs.controller.set(name_1, value);
                     if (name_1 !== ukname) {
-                        attrs.__qe_controller.set(ukname, value);
+                        attrs.controller.set(ukname, value);
                     }
                 }
             }
-            return attrs;
+            return attrs.scopeData;
         };
-        scope.__qe_controller.createDelayed("$attributes", attach, detach, getCurrentValue);
+        scope.controller.createDelayed("$attributes", attach, detach, getCurrentValue);
     }
     function addClass(elem, scope) {
         var mo;
         var classes;
         var previousClassesList;
         function setClass(cls, val) {
-            classes.__qe_controller.set(cls, val);
+            classes.controller.set(cls, val);
             var ukcls = unKebab(cls);
             if (cls !== ukcls) {
-                classes.__qe_controller.set(ukcls, val);
+                classes.controller.set(ukcls, val);
             }
         }
         var attach = function (setter) {
@@ -583,13 +674,13 @@
                 previousClassesList = newClassesList;
             });
             mo.observe(elem, { attributes: true, attributeFilter: ["class"] });
-            setter(classes);
+            setter(classes.scopeData);
         };
         var detach = function () {
             if (mo)
                 mo.disconnect();
             if (classes)
-                classes.__qe_controller.tearDown();
+                classes.controller.tearDown();
             mo = classes = previousClassesList = null;
         };
         var getCurrentValue = function () {
@@ -601,18 +692,18 @@
                     setClass(cls, true);
                 }
             }
-            return classes;
+            return classes.scopeData;
         };
-        scope.__qe_controller.createDelayed("$class", attach, detach, getCurrentValue);
+        scope.controller.createDelayed("$class", attach, detach, getCurrentValue);
     }
     function getScopeForElement(elem) {
         return scopes[elem.__qe_scope_id];
     }
     function tearDownElementScope(elem) {
         var s = getScopeForElement(elem);
-        delete scopes[s.__qe_controller._id];
+        delete scopes[s.controller._id];
         delete elem.__qe_scope_id;
-        s.__qe_controller.tearDown();
+        s.controller.tearDown();
     }
     function findClosestEntangledAncestor(elem) {
         if (elem.nodeName === "BODY")
@@ -633,9 +724,9 @@
         }
         addAttributes(elem, scope);
         addClass(elem, scope);
-        scope.__qe_controller.set("$element", elem);
-        elem.__qe_scope_id = scope.__qe_controller._id;
-        scopes[scope.__qe_controller._id] = scope;
+        scope.controller.set("$element", elem);
+        elem.__qe_scope_id = scope.controller._id;
+        scopes[scope.controller._id] = scope;
         return scope;
     }
     function unKebab(s) {
@@ -668,7 +759,7 @@
                 var attr = attrs[i];
                 if (/^qe\./.test(attr.name)) {
                     var prop = unKebab(attr.name.substr(3));
-                    scope.__qe_controller.set(prop, propertyAttributeValue(attr.value));
+                    scope.controller.set(prop, propertyAttributeValue(attr.value));
                 }
                 else if (/^qe:/.test(attr.name)) {
                     expressionAttribute(scope, elem, attr);
@@ -681,7 +772,7 @@
                             indirectTunnel(te.substr(1), scope);
                         }
                         else {
-                            Tunnel(scope, tunnelexprs[j]);
+                            QE.Tunnel(scope, tunnelexprs[j]);
                         }
                     }
                 }
@@ -702,7 +793,7 @@
                 tunnel.destroy();
             }
             if (val) {
-                tunnel = Tunnel(scope, val, function () { tunnel = null; });
+                tunnel = QE.Tunnel(scope, val, function () { tunnel = null; });
             }
         });
     }
@@ -798,81 +889,6 @@
             }
         });
     }
-    function Tunnel(scope, definition, onDestroy) {
-        var parts = definition.split(" into ");
-        if (parts.length != 2) {
-            throw "invalid syntax in tunnel expression " + definition;
-        }
-        var exitAndCondition = parts[1].split(" if ");
-        if (exitAndCondition.length > 2) {
-            throw "invalid syntax in tunnel expression " + definition;
-        }
-        var tunnelExit = exitAndCondition[0].trim();
-        var lastDot = tunnelExit.lastIndexOf(".");
-        var tunnelExitScopeExpr, tunnelExitProperty;
-        if (lastDot !== -1) {
-            tunnelExitScopeExpr = tunnelExit.substr(0, lastDot);
-        }
-        else {
-            tunnelExitScopeExpr = "$self";
-        }
-        tunnelExitProperty = tunnelExit.substr(lastDot + 1);
-        var tunnelEntrance = parts[0];
-        var tunnelCondition = exitAndCondition[1];
-        var tunnelExitScope;
-        var tunnelValue;
-        var tunnelActive = !tunnelCondition;
-        var token;
-        var expressions = [];
-        var doTunnel = function () {
-            if (tunnelExitScope) {
-                if (tunnelActive) {
-                    token = tunnelExitScope.__qe_controller.multiSet(tunnelExitProperty, tunnelValue, token);
-                }
-                else if (token) {
-                    tunnelExitScope.__qe_controller.unMultiSet(tunnelExitProperty, token);
-                    token = null;
-                }
-            }
-        };
-        expressions.push(Expression(tunnelExitScopeExpr, scope, function (s) {
-            if (tunnelActive && tunnelExitScope) {
-                tunnelActive = false;
-                doTunnel();
-                tunnelActive = true;
-            }
-            tunnelExitScope = s;
-            doTunnel();
-        }, destroy));
-        if (tunnelCondition) {
-            expressions.push(Expression(tunnelCondition, scope, function (v) {
-                tunnelActive = !!v;
-                doTunnel();
-            }, destroy));
-        }
-        expressions.push(Expression(tunnelEntrance, scope, function (v) {
-            tunnelValue = v;
-            doTunnel();
-        }, destroy));
-        function destroy() {
-            if (!expressions) {
-                return;
-            }
-            var oldExpressions = expressions;
-            expressions = null;
-            tunnelActive = false;
-            doTunnel();
-            for (var _i = 0, oldExpressions_1 = oldExpressions; _i < oldExpressions_1.length; _i++) {
-                var e = oldExpressions_1[_i];
-                e.destroy();
-            }
-        }
-        if (onDestroy) {
-            return {
-                destroy: destroy
-            };
-        }
-    }
     function nodeOrDescendantIsQE(node) {
         if (node.nodeType !== Node.ELEMENT_NODE)
             return false;
@@ -962,7 +978,7 @@
                 if (mr.type === "attributes" && /^qe(?:-tunnel$|\.|:|$)/.test(mr.attributeName) && mr.oldValue !== target.getAttribute(mr.attributeName)) {
                     if (/^qe\./.test(mr.attributeName)) {
                         var prop = unKebab(mr.attributeName.substr(3));
-                        getScopeForElement(target).__qe_controller.set(prop, target.hasAttribute(mr.attributeName) ? propertyAttributeValue(target.getAttribute(mr.attributeName)) : undefined);
+                        getScopeForElement(target).controller.set(prop, target.hasAttribute(mr.attributeName) ? propertyAttributeValue(target.getAttribute(mr.attributeName)) : undefined);
                         continue;
                     }
                     if (handleChangedElement(target))

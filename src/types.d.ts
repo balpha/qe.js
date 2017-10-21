@@ -41,7 +41,13 @@ interface IPublicScopeController {
 }
 
 interface IPublicScope {
-    __qe_controller: IPublicScopeController;
+    controller: IPublicScopeController;
+    scopeData: IPublicScopeData;
+}
+
+interface IPublicScopeData {
+    //[p: string] : any;
+    __qe_scope_id: number;
 }
 
 interface IDestroyable {
