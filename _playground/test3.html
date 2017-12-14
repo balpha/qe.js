@@ -56,10 +56,10 @@
         
         
         
-        <div class="form-container" qe="cont" qe:class="{'focus-inside': $self.inputHasFocus }">
+        <div class="form-container" qe="cont" qe:class="{'focus-inside': $self.inputHasFocus }" qe:xyz="$global.hovered ? $global.hovered.$attributes.qe : undefined">
             <input type="text" qe qe-tunnel="$focus into $parent.inputHasFocus if $self.useFirst">
             <br>
-            <input type="text" qe qe-tunnel="$focus into $parent.inputHasFocus if !$self.useFirst">
+            <input type="text" qe="background-on-focus()" qe.focus-color="red" qe-tunnel="$focus into $parent.inputHasFocus if !$self.useFirst">
             <br>
             <label qe="bold-on-hover()">
                 <input type="checkbox" qe qe-tunnel="$value into cont.useFirst">
@@ -71,12 +71,16 @@
     </body>
     <script>
         document.addEventListener("DOMContentLoaded", function() {
-            QE.register("bold-on-hover", {
+            fetch("test.qec").then(res => res.text()).then(function (s) {
+                QE.parseAndRegister(s);
+                QE.init();
+            })
+            /*QE.register("bold-on-hover", {
                 attributes: {
                     "style": "{'font-weight': $hover ? 'bold' : 'normal'}"
                 }
             });
-            QE.init();
+            QE.init();*/
             
             var foo = document.getElementById("foo");
             var interv = setInterval(function () {

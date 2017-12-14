@@ -11,6 +11,7 @@
         "tools.tst",
         "export.ts",
         "scope.ts",
-        "dom.ts"
+        "dom.ts",
+        "parse.ts"
     ]
 }

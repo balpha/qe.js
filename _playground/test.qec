@@ -1,0 +1,9 @@
+bold-on-hover() {
+    [style]: {'font-weight': $hover ? 'bold' : 'normal'};
+    
+    $global.hovered: $self if $hover;
+}
+
+background-on-focus() {
+    [style]: {'background-color' : $focus ? focusColor : undefined};
+}

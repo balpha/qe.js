@@ -12,6 +12,7 @@ interface QE {
     logExceptionsToConsole(yesno: boolean): void;
     
     register(name: string, componentData: IComponent): void;
+    parseAndRegister(s: string): void;
     init(): void;
 }
 

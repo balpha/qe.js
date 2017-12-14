@@ -812,7 +812,7 @@
             return;
         if (comp.attributes) {
             for (var prop in comp.attributes)
-                if (comp.attributes.hasOwnProperty(prop)) {
+                if (objectHasOwnProperty(comp.attributes, prop)) {
                     expressionAttribute(scope, elem, { name: "qe:" + prop, value: comp.attributes[prop] });
                 }
         }
@@ -1062,4 +1062,47 @@
         monkeypatchInputs();
         build();
     };
+    function parseAndRegister(s) {
+        var definitions = parse(s);
+        for (var _i = 0, definitions_1 = definitions; _i < definitions_1.length; _i++) {
+            var def = definitions_1[_i];
+            QE.register(def.name, def.component);
+        }
+    }
+    function parse(s) {
+        var result = [];
+        var cre = /([\w-]+)\(\)\s*\{/g;
+        var dre = /\}|([\w.$-]+|\[[\w-]+\])\s*:\s*([^;]*);/g;
+        var cmatch;
+        while (cmatch = cre.exec(s)) {
+            var dmatch = void 0;
+            var def = {
+                name: cmatch[1],
+                component: {
+                    tunnels: [],
+                    attributes: Object.create(null)
+                }
+            };
+            result.push(def);
+            dre.lastIndex = cre.lastIndex;
+            while ((dmatch = dre.exec(s)) && dmatch[0] !== "}") {
+                var prop = dmatch[1];
+                if (prop[0] === "[") {
+                    def.component.attributes[prop.substr(1, prop.length - 2)] = dmatch[2];
+                }
+                else {
+                    var split = dmatch[2].split(" if ");
+                    if (split.length > 1) {
+                        def.component.tunnels.push(split[0] + " into " + prop + " if " + split[1]);
+                    }
+                    else {
+                        def.component.tunnels.push(split[0] + " into " + prop);
+                    }
+                }
+            }
+            cre.lastIndex = dre.lastIndex;
+        }
+        return result;
+    }
+    QE.parseAndRegister = parseAndRegister;
 })();

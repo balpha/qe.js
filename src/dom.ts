@@ -331,7 +331,7 @@
         if (!comp)
             return;
         if (comp.attributes) {
-            for (let prop in comp.attributes) if (comp.attributes.hasOwnProperty(prop)) {
+            for (let prop in comp.attributes) if (objectHasOwnProperty(comp.attributes, prop)) {
                 expressionAttribute(scope, elem, {name: "qe:" + prop, value: comp.attributes[prop]});
             }
         }
