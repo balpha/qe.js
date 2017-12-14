@@ -697,7 +697,7 @@
         scope.controller.createDelayed("$class", attach, detach, getCurrentValue);
     }
     function getScopeForElement(elem) {
-        return scopes[elem.__qe_scope_id];
+        return elem.__qe_scope_id ? scopes[elem.__qe_scope_id] : null;
     }
     function tearDownElementScope(elem) {
         var s = getScopeForElement(elem);
@@ -752,6 +752,24 @@
         var nextParentScope = parentScope;
         if (elem.hasAttribute("qe")) {
             var name_2 = elem.getAttribute("qe") || null;
+            var components = [];
+            if (name_2) {
+                var split = name_2.split(/\s+/);
+                name_2 = null;
+                for (var _i = 0, split_1 = split; _i < split_1.length; _i++) {
+                    var part = split_1[_i];
+                    var match = part.match(/^(.*)\(\)$/);
+                    if (match) {
+                        components.push(match[1]);
+                    }
+                    else {
+                        if (name_2 !== null) {
+                            throw "scope can only have on name, found " + name_2 + " and " + part;
+                        }
+                        name_2 = part;
+                    }
+                }
+            }
             var scope = domScope(elem, parentScope, name_2);
             nextParentScope = scope;
             var attrs = Array.prototype.slice.call(elem.attributes).map(function (a) { return { name: a.name, value: a.value }; });
@@ -767,23 +785,50 @@
                 else if (attr.name === "qe-tunnel") {
                     var tunnelexprs = attr.value.split(";");
                     for (var j = 0; j < tunnelexprs.length; j++) {
-                        var te = tunnelexprs[j].trim();
-                        if (/^@/.test(te)) {
-                            indirectTunnel(te.substr(1), scope);
-                        }
-                        else {
-                            QE.Tunnel(scope, tunnelexprs[j]);
-                        }
+                        applyTunnel(tunnelexprs[j].trim(), scope);
                     }
                 }
             }
+            for (var _a = 0, components_1 = components; _a < components_1.length; _a++) {
+                var compName = components_1[_a];
+                applyComponent(compName, scope, elem);
+            }
         }
         var children = Array.prototype.slice.call(elem.children);
-        for (var _i = 0, children_1 = children; _i < children_1.length; _i++) {
-            var child = children_1[_i];
+        for (var _b = 0, children_1 = children; _b < children_1.length; _b++) {
+            var child = children_1[_b];
             if (child instanceof HTMLElement) {
                 buildScopes(child, nextParentScope);
             }
+        }
+    }
+    var componentRegistry = {};
+    QE.register = function (name, componentData) {
+        componentRegistry[name] = componentData;
+    };
+    function applyComponent(name, scope, elem) {
+        var comp = componentRegistry[name];
+        if (!comp)
+            return;
+        if (comp.attributes) {
+            for (var prop in comp.attributes)
+                if (comp.attributes.hasOwnProperty(prop)) {
+                    expressionAttribute(scope, elem, { name: "qe:" + prop, value: comp.attributes[prop] });
+                }
+        }
+        if (comp.tunnels) {
+            for (var _i = 0, _a = comp.tunnels; _i < _a.length; _i++) {
+                var te = _a[_i];
+                applyTunnel(te, scope);
+            }
+        }
+    }
+    function applyTunnel(tunnelExp, scope) {
+        if (/^@/.test(tunnelExp)) {
+            indirectTunnel(tunnelExp.substr(1), scope);
+        }
+        else {
+            QE.Tunnel(scope, tunnelExp);
         }
     }
     function indirectTunnel(expr, scope) {

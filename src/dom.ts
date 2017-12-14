@@ -216,7 +216,7 @@
     }
     
     function getScopeForElement(elem: HTMLElement): IPublicScope {
-        return scopes[elem.__qe_scope_id];
+        return elem.__qe_scope_id ? scopes[elem.__qe_scope_id] : null;
     }
     
     function tearDownElementScope(elem: HTMLElement): void {
@@ -278,6 +278,22 @@
         var nextParentScope = parentScope;
         if (elem.hasAttribute("qe")) {
             let name = elem.getAttribute("qe") || null;
+            let components = [];
+            if (name) {
+                let split = name.split(/\s+/);
+                name = null;
+                for (let part of split) {
+                    let match = part.match(/^(.*)\(\)$/);
+                    if (match) {
+                        components.push(match[1]);
+                    } else {
+                        if (name !== null) {
+                            throw "scope can only have on name, found " + name + " and " + part;
+                        }
+                        name = part;
+                    }
+                }
+            }
             let scope = domScope(elem, parentScope, name);
             nextParentScope = scope;
             let attrs = Array.prototype.slice.call(elem.attributes).map(function (a: Attr) { return { name: a.name, value: a.value }; });
@@ -291,20 +307,46 @@
                 } else if (attr.name === "qe-tunnel") {
                     let tunnelexprs = attr.value.split(";");
                     for (let j = 0; j < tunnelexprs.length; j++) {
-                        let te = tunnelexprs[j].trim();
-                        if (/^@/.test(te)) {
-                            indirectTunnel(te.substr(1), scope);
-                        } else {
-                            QE.Tunnel(scope, tunnelexprs[j]);                     
-                        }
-                        
+                        applyTunnel(tunnelexprs[j].trim(), scope);
                     }
                 }
+            }
+            for (let compName of components) {
+                applyComponent(compName, scope, elem)
             }
         }
         var children = Array.prototype.slice.call(elem.children);
         for (let child of children) if (child instanceof HTMLElement) {
             buildScopes(child, nextParentScope);
+        }
+    }
+
+    var componentRegistry: { [name: string] : IComponent } = {};
+    QE.register = function (name: string, componentData: IComponent): void {
+        componentRegistry[name] = componentData;// TODO: validate/freeze/copy
+    }
+
+    function applyComponent(name: string, scope: IPublicScope, elem: HTMLElement) {
+        var comp = componentRegistry[name];
+        if (!comp)
+            return;
+        if (comp.attributes) {
+            for (let prop in comp.attributes) if (comp.attributes.hasOwnProperty(prop)) {
+                expressionAttribute(scope, elem, {name: "qe:" + prop, value: comp.attributes[prop]});
+            }
+        }
+        if (comp.tunnels) {
+            for (let te of comp.tunnels) {
+                applyTunnel(te, scope);
+            }
+        }
+    }
+
+    function applyTunnel(tunnelExp: string, scope: IPublicScope) {
+        if (/^@/.test(tunnelExp)) {
+            indirectTunnel(tunnelExp.substr(1), scope);
+        } else {
+            QE.Tunnel(scope, tunnelExp);                     
         }
     }
 
@@ -320,7 +362,7 @@
         });
     }
     
-    function expressionAttribute(scope: IPublicScope, elem: HTMLElement, attr: Attr) {
+    function expressionAttribute(scope: IPublicScope, elem: HTMLElement, attr: IAttribute) {
         var actualAttr = attr.name.substr(3);
         if (/^qe(?:\.|:|$)/.test(actualAttr)) {
             throw "I'm sorry Dave, I'm afraid I can't do that."; // technically it works, but I don't see how it would ever be a good idea

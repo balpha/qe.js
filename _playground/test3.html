@@ -56,13 +56,13 @@
         
         
         
-        <div class="form-container" qe qe:class="{'focus-inside': $self.inputHasFocus }">
+        <div class="form-container" qe="cont" qe:class="{'focus-inside': $self.inputHasFocus }">
             <input type="text" qe qe-tunnel="$focus into $parent.inputHasFocus if $self.useFirst">
             <br>
             <input type="text" qe qe-tunnel="$focus into $parent.inputHasFocus if !$self.useFirst">
             <br>
-            <label>
-                <input type="checkbox" qe qe-tunnel="$value into $parent.useFirst">
+            <label qe="bold-on-hover()">
+                <input type="checkbox" qe qe-tunnel="$value into cont.useFirst">
                 Use the first input to control the focus-inside style
             </label>
         </div>
@@ -71,6 +71,11 @@
     </body>
     <script>
         document.addEventListener("DOMContentLoaded", function() {
+            QE.register("bold-on-hover", {
+                attributes: {
+                    "style": "{'font-weight': $hover ? 'bold' : 'normal'}"
+                }
+            });
             QE.init();
             
             var foo = document.getElementById("foo");

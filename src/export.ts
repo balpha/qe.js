@@ -11,6 +11,7 @@ interface QE {
     logPendingExceptions(): void;
     logExceptionsToConsole(yesno: boolean): void;
     
+    register(name: string, componentData: IComponent): void;
     init(): void;
 }
 

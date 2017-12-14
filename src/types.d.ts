@@ -53,3 +53,13 @@ interface IPublicScopeData {
 interface IDestroyable {
     destroy(): void;
 }
+
+interface IComponent {
+    tunnels?: string[];
+    attributes?: { [a: string]: string };
+}
+
+interface IAttribute {
+    name: string;
+    value: string;
+}
