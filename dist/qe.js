@@ -719,7 +719,7 @@
         var scope = Scope(parentScope, name);
         addHover(elem, scope);
         addFocus(elem, scope);
-        if (elem instanceof HTMLInputElement) {
+        if (elem instanceof HTMLInputElement || elem instanceof HTMLTextAreaElement) {
             addValue(elem, scope);
         }
         addAttributes(elem, scope);
@@ -975,6 +975,7 @@
         for (var i = 0; i < props.length; i++) {
             triggerModifiedEventOnPropertyChange("input", props[i]);
         }
+        triggerModifiedEventOnPropertyChange("textarea", "value");
     }
     function elementHasEntangledDescendants(elem) {
         for (var i = 0; i < elem.children.length; i++) {

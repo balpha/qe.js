@@ -510,7 +510,27 @@
                 }, 0);
             });
         }
+    });
+    // identical to the same test for input, except that it's a textarea
+    TEST({
+        name: "$value for textareas and $global, manual",
+        body: ['<body><div qe qe:style="\'width:50px;height:50px;\'+ (color ? \'background-color:\' + color : \'\')"></div>',
+               'Type a CSS color here, and also try the "random" button:<br>',
+               '<textarea qe qe-tunnel="$value into $global.color"></textarea>',
+               ' <button id="random-color">random</button>',
+               '<br><button id="success">works great</button> <button id="failure">not so much</button>',
+               '</body>'].join(""),
+        run: function (done) {
+            document.getElementById("success").addEventListener("click", function () { done(true); });
+            document.getElementById("failure").addEventListener("click", function () { done(false); });
+            document.getElementById("random-color").addEventListener("click", function () {
+                var rgb = [0,0,0].map(function () { return Math.random() * 255 | 0;});
+                tools.qs("textarea").value = "rgb(" + rgb.join() + ")";
+            });
+        },
+        manual: true
     });    
+    
     window.QETest = QETest;
     window.QETestResult = QETestResult;
 })();

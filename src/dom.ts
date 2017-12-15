@@ -55,7 +55,7 @@
         scope.controller.createDelayed(prop, attach, detach, getCurrentValue);
     }
 
-    function addValue(elem: HTMLInputElement, scope: IPublicScope) {
+    function addValue(elem: HTMLInputElement | HTMLTextAreaElement, scope: IPublicScope) {
         var onChange: (e: Event) => void;
         
         var attach = function (setter: ISetter<string | boolean>) {
@@ -93,7 +93,7 @@
         var getCurrenValue = function () {
             var type = elem.type;
             if (type === "radio" || type === "checkbox") {
-                return elem.checked;
+                return (elem as HTMLInputElement).checked;
             }
             return elem.value;
             //throw "unsupported element for $value";
@@ -242,7 +242,7 @@
         
         addHover(elem, scope);
         addFocus(elem, scope);
-        if (elem instanceof HTMLInputElement) {
+        if (elem instanceof HTMLInputElement || elem instanceof HTMLTextAreaElement) {
             addValue(elem, scope);
         }
         addAttributes(elem, scope);
@@ -510,7 +510,7 @@
         for (let i = 0; i < props.length; i++) {
             triggerModifiedEventOnPropertyChange("input", props[i]);
         }
-        
+        triggerModifiedEventOnPropertyChange("textarea", "value");
     }
     
     function elementHasEntangledDescendants(elem: Element) {
